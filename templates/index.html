@@ -60,9 +60,31 @@
                     style="background: rgba(249, 115, 22, 0.1); color: var(--primary); border: none; font-weight: 700;">{{
                     recipe.category or 'Recipe' }}</span>
             </div>
-            <p class="card-text" style="color: #52525b; line-height: 1.6;">{{ recipe.description|truncate(100) }}</p>
+            {% if recipe.description %}
+            <div class="recipe-card-description" style="cursor: pointer;"
+                onclick="viewFullRecipe(this.closest('.card'))">
+                {{ recipe.description }}
+            </div>
+            {% endif %}
+
+            <p class="card-text" style="color: #52525b; line-height: 1.6; font-weight: 500;">
+                <i class="fas fa-quote-left" style="color: var(--primary); opacity: 0.3; margin-right: 0.5rem;"></i>
+                {{ (recipe.instructions or "")|truncate(120) }}
+            </p>
+
+            <!-- Hidden Data for Modal -->
+            <div class="recipe-data" style="display: none;" data-title="{{ recipe.title }}"
+                data-description="{{ recipe.description or '' }}" data-ingredients="{{ recipe.ingredients or '' }}"
+                data-instructions="{{ recipe.instructions or '' }}">
+            </div>
+
+            <button class="btn btn-primary" style="width: 100%; margin-top: 1rem; padding: 0.8rem; font-size: 0.9rem;"
+                onclick="viewFullRecipe(this.closest('.card'))">
+                <i class="fas fa-hat-chef"></i> Open Recipe Details
+            </button>
+
             <div
-                style="display: flex; justify-content: space-between; align-items: center; border-top: 1px solid rgba(0,0,0,0.05); padding-top: 1.25rem; margin-top: 0.5rem;">
+                style="display: flex; justify-content: space-between; align-items: center; border-top: 1px solid rgba(0,0,0,0.05); padding-top: 1.25rem; margin-top: 1.5rem;">
                 <div style="display: flex; align-items: center; gap: 0.5rem;">
                     <div
                         style="width: 32px; height: 32px; background: var(--primary); border-radius: 50%; display: flex; align-items: center; justify-content: center; color: white; font-size: 0.8rem; font-weight: 800;">
@@ -96,9 +118,8 @@
                 <img src="{{ video.thumbnails[0].url if video.thumbnails else '' }}" alt="{{ video.title }}"
                     style="transition: transform 0.5s ease;">
                 <div
-                    style="position: absolute; top:0; left:0; width:100%; height:100%; display:flex; align-items:center; justify-content:center; background:rgba(0,0,0,0.2); transition: background 0.3s ease;">
-                    <i class="fas fa-play-circle"
-                        style="color: white; font-size: 3.5rem; opacity: 0.9; text-shadow: 0 4px 12px rgba(0,0,0,0.3);"></i>
+                    style="position: absolute; top:0; left:0; width:100%; height:100%; display:flex; align-items:center; justify-content:center; background:rgba(0,0,0,0.2);">
+                    <i class="fas fa-play-circle" style="color: white; font-size: 3.5rem; opacity: 0.9;"></i>
                 </div>
             </div>
             <div class="card-body" style="padding: 1.5rem;">
@@ -107,19 +128,12 @@
                     {{ video.title }}</h3>
                 <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem;">
                     <span class="badge"
-                        style="background: rgba(255, 0, 0, 0.1); color: #ef4444; border: none; font-weight: 700;">
-                        <i class="fab fa-youtube" style="margin-right: 0.3rem;"></i> Youtube
-                    </span>
+                        style="background: rgba(255, 0, 0, 0.1); color: #ef4444; border: none; font-weight: 700;">Youtube</span>
                     <span
                         style="font-size: 0.85rem; font-weight: 700; color: #71717a; background: #f4f4f5; padding: 0.2rem 0.6rem; border-radius: 6px;">{{
                         video.duration }}</span>
                 </div>
-                <div
-                    style="display: flex; align-items: center; gap: 0.6rem; border-top: 1px solid rgba(0,0,0,0.05); padding-top: 1rem;">
-                    <i class="fas fa-tv" style="color: #a1a1aa; font-size: 0.9rem;"></i>
-                    <p style="font-size: 0.9rem; color: #52525b; font-weight: 600; margin: 0;">{{ video.channel.name }}
-                    </p>
-                </div>
+                <p style="font-size: 0.9rem; color: #52525b; font-weight: 600;">{{ video.channel.name }}</p>
             </div>
         </div>
         {% endfor %}
@@ -127,9 +141,44 @@
 </div>
 {% endif %}
 
-<!-- Simple Player Modal -->
-<div id="videoModal" class="modal" onclick="closeModal()">
+<!-- jsPDF for Recipe Downloads -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+
+<!-- Simple & Compact Recipe Modal -->
+<div id="recipeModal" class="modal" onclick="closeRecipeModal()">
     <div class="modal-content" onclick="event.stopPropagation()">
+        <div class="modal-header">
+            <h2 id="modalTitle"></h2>
+            <div style="display: flex; gap: 0.5rem;">
+                <button onclick="downloadRecipePDF()" class="close-simple" title="Download PDF"
+                    style="color: var(--primary);">
+                    <i class="fas fa-file-pdf"></i>
+                </button>
+                <button class="close-simple" onclick="closeRecipeModal()">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+        </div>
+
+        <div id="modalDescription" style="color: #64748b; font-size: 0.95rem; margin-bottom: 1.5rem; line-height: 1.6;">
+        </div>
+
+        <div class="simple-section-title">
+            <i class="fas fa-leaf"></i> Ingredients
+        </div>
+        <div id="modalIngredients" class="compact-ingredients"></div>
+
+        <div class="simple-section-title">
+            <i class="fas fa-list-ol"></i> Instructions
+        </div>
+        <div id="modalInstructions" class="compact-steps"></div>
+    </div>
+</div>
+
+<!-- YouTube Modal -->
+<div id="videoModal" class="modal" onclick="closeModal()">
+    <div class="modal-content" onclick="event.stopPropagation()"
+        style="max-width: 800px; padding: 0; background: #000; overflow: hidden;">
         <div style="position: relative; padding-bottom: 56.25%; height: 0;">
             <iframe id="youtubePlayer" style="position: absolute; top: 0; left: 0; width: 100%; height: 100%;"
                 frameborder="0" allow="autoplay; fullscreen"></iframe>
@@ -138,11 +187,108 @@
 </div>
 
 <script>
-    function playYouTube(id) {
-        document.getElementById('youtubePlayer').src = `https://www.youtube.com/embed/${id}?autoplay=1`;
-        document.getElementById('videoModal').style.display = 'block';
+    function viewFullRecipe(cardElement) {
+        const data = cardElement.querySelector('.recipe-data').dataset;
+
+        document.getElementById('modalTitle').textContent = data.title;
+        document.getElementById('modalDescription').textContent = data.description || 'No description provided.';
+
+        // Simple Ingredients
+        const ingGrid = document.getElementById('modalIngredients');
+        ingGrid.innerHTML = '';
+        if (data.ingredients) {
+            data.ingredients.split('\n').filter(i => i.trim()).forEach(item => {
+                const tag = document.createElement('span');
+                tag.className = 'ing-tag';
+                tag.textContent = item.trim();
+                ingGrid.appendChild(tag);
+            });
+        }
+
+        // Simple Steps
+        const insTimeline = document.getElementById('modalInstructions');
+        insTimeline.innerHTML = '';
+        const stepText = data.instructions ? data.instructions : data.description;
+        if (stepText) {
+            stepText.split('\n').filter(s => s.trim()).forEach((step, index) => {
+                const div = document.createElement('div');
+                div.className = 'simple-step';
+                div.innerHTML = `<strong>Step ${index + 1}:</strong> ${step.trim()}`;
+                insTimeline.appendChild(div);
+            });
+        }
+
+        document.getElementById('recipeModal').style.display = 'flex';
         document.body.style.overflow = 'hidden';
     }
+
+    function closeRecipeModal() {
+        document.getElementById('recipeModal').style.display = 'none';
+        document.body.style.overflow = 'auto';
+    }
+
+    function downloadRecipePDF() {
+        const { jsPDF } = window.jspdf;
+        const doc = new jsPDF();
+        const title = document.getElementById('modalTitle').textContent;
+        const description = document.getElementById('modalDescription').textContent;
+
+        // Stylish Header
+        doc.setFontSize(22);
+        doc.setTextColor(249, 115, 22); // var(--primary)
+        doc.text(title, 20, 20);
+
+        doc.setFontSize(12);
+        doc.setTextColor(100, 116, 139);
+        doc.text(description !== 'No description provided.' ? description : '', 20, 30, { maxWidth: 170 });
+
+        let yPos = 50;
+
+        // Ingredients Section
+        doc.setFontSize(16);
+        doc.setTextColor(30, 41, 59);
+        doc.text("Ingredients", 20, yPos);
+        yPos += 10;
+
+        doc.setFontSize(12);
+        doc.setTextColor(51, 65, 85);
+        const ingredients = document.querySelectorAll('.ing-tag');
+        ingredients.forEach(ing => {
+            doc.text(`• ${ing.textContent}`, 25, yPos);
+            yPos += 7;
+        });
+
+        yPos += 10;
+
+        // Procedure Section
+        doc.setFontSize(16);
+        doc.setTextColor(30, 41, 59);
+        doc.text("Procedure", 20, yPos);
+        yPos += 10;
+
+        doc.setFontSize(12);
+        doc.setTextColor(51, 65, 85);
+        const steps = document.querySelectorAll('.simple-step');
+        steps.forEach((step, index) => {
+            const lines = doc.splitTextToSize(step.textContent, 160);
+            doc.text(lines, 20, yPos);
+            yPos += (lines.length * 7) + 3;
+
+            if (yPos > 270) {
+                doc.addPage();
+                yPos = 20;
+            }
+        });
+
+        doc.save(`${title.replace(/[^a-z0-9]/gi, '_').toLowerCase()}_recipe.pdf`);
+    }
+
+    function playYouTube(id) {
+        document.getElementById('youtubePlayer').src = `https://www.youtube.com/embed/${id}?autoplay=1`;
+        document.getElementById('videoModal').style.display = 'flex';
+        document.body.style.overflow = 'hidden';
+    }
+
     function closeModal() {
         document.getElementById('videoModal').style.display = 'none';
         document.getElementById('youtubePlayer').src = '';

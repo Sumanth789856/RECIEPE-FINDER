@@ -12,9 +12,21 @@
         </div>
 
         <div class="form-group">
-            <label for="description">Steps & Ingredients</label>
-            <textarea id="description" name="description" class="form-control" rows="6"
-                required>{{ recipe.description }}</textarea>
+            <label for="description">Short Description / Story</label>
+            <textarea id="description" name="description" class="form-control"
+                rows="2">{{ recipe.description }}</textarea>
+        </div>
+
+        <div class="form-group">
+            <label for="ingredients">Ingredients</label>
+            <textarea id="ingredients" name="ingredients" class="form-control" rows="4"
+                required>{{ recipe.ingredients }}</textarea>
+        </div>
+
+        <div class="form-group">
+            <label for="instructions">Cooking Procedure</label>
+            <textarea id="instructions" name="instructions" class="form-control" rows="6"
+                required>{{ recipe.instructions }}</textarea>
         </div>
 
         <div class="form-group">

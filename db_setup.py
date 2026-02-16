@@ -61,13 +61,18 @@ def create_tables():
         try:
             cursor.execute("ALTER TABLE users ADD COLUMN profile_photo VARCHAR(255) AFTER phone_number")
         except: pass
+        try:
+            cursor.execute("ALTER TABLE users ADD COLUMN age INT AFTER gender")
+        except: pass
 
         # Create recipes table
         cursor.execute("""
         CREATE TABLE IF NOT EXISTS recipes (
             id INT AUTO_INCREMENT PRIMARY KEY,
             title VARCHAR(100) NOT NULL,
-            description TEXT NOT NULL,
+            description TEXT,
+            ingredients TEXT,
+            instructions TEXT,
             video_filename VARCHAR(255),
             category VARCHAR(50),
             user_id INT,
@@ -77,10 +82,16 @@ def create_tables():
         """)
         print("Recipes table checked/created.")
 
-        # Add category column if it doesn't exist
+        # Add ingredients and instructions columns if they don't exist
+        try:
+            cursor.execute("ALTER TABLE recipes ADD COLUMN ingredients TEXT AFTER description")
+            cursor.execute("ALTER TABLE recipes ADD COLUMN instructions TEXT AFTER ingredients")
+            print("Ingredients and instructions columns added to recipes table.")
+        except: pass
+
+        # Add category column if it doesn't exist (already handled but keeping consistency)
         try:
             cursor.execute("ALTER TABLE recipes ADD COLUMN category VARCHAR(50) AFTER video_filename")
-            print("Category column added to recipes table.")
         except: pass
 
         # Check if admin exists, if not create one

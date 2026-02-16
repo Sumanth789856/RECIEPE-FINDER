@@ -120,7 +120,9 @@ def upload_recipe():
 
     if request.method == 'POST':
         title = request.form['title']
-        description = request.form['description']
+        ingredients = request.form['ingredients']
+        instructions = request.form['instructions']
+        description = request.form.get('description', '')
         
         if 'video' not in request.files:
             flash('No video file part', 'danger')
@@ -144,8 +146,8 @@ def upload_recipe():
                 category = request.form.get('category', 'Other')
                 with conn.cursor() as cursor:
                     cursor.execute(
-                        "INSERT INTO recipes (title, description, video_filename, category, user_id) VALUES (%s, %s, %s, %s, %s)",
-                        (title, description, filename, category, session['user_id'])
+                        "INSERT INTO recipes (title, description, ingredients, instructions, video_filename, category, user_id) VALUES (%s, %s, %s, %s, %s, %s, %s)",
+                        (title, description, ingredients, instructions, filename, category, session['user_id'])
                     )
                     conn.commit()
                 flash('Recipe uploaded successfully!', 'success')
@@ -179,7 +181,9 @@ def edit_recipe(id):
                 
             if request.method == 'POST':
                 title = request.form['title']
-                description = request.form['description']
+                ingredients = request.form['ingredients']
+                instructions = request.form['instructions']
+                description = request.form.get('description', '')
                 
                 # Update video if new one is uploaded
                 new_video_filename = recipe['video_filename']
@@ -199,8 +203,8 @@ def edit_recipe(id):
                 category = request.form.get('category', recipe['category'])
                 
                 cursor.execute(
-                    "UPDATE recipes SET title=%s, description=%s, video_filename=%s, category=%s WHERE id=%s",
-                    (title, description, new_video_filename, category, id)
+                    "UPDATE recipes SET title=%s, description=%s, ingredients=%s, instructions=%s, video_filename=%s, category=%s WHERE id=%s",
+                    (title, description, ingredients, instructions, new_video_filename, category, id)
                 )
                 conn.commit()
                 flash('Recipe updated successfully!', 'success')
@@ -311,6 +315,7 @@ def update_profile():
     email = request.form.get('email')
     gender = request.form.get('gender')
     phone_number = request.form.get('phone_number')
+    age = request.form.get('age')
     
     profile_photo = None
     if 'profile_photo' in request.files:
@@ -326,13 +331,13 @@ def update_profile():
         with conn.cursor() as cursor:
             if profile_photo:
                 cursor.execute(
-                    "UPDATE users SET full_name=%s, email=%s, gender=%s, phone_number=%s, profile_photo=%s WHERE id=%s",
-                    (full_name, email, gender, phone_number, profile_photo, session['user_id'])
+                    "UPDATE users SET full_name=%s, email=%s, gender=%s, phone_number=%s, age=%s, profile_photo=%s WHERE id=%s",
+                    (full_name, email, gender, phone_number, age, profile_photo, session['user_id'])
                 )
             else:
                 cursor.execute(
-                    "UPDATE users SET full_name=%s, email=%s, gender=%s, phone_number=%s WHERE id=%s",
-                    (full_name, email, gender, phone_number, session['user_id'])
+                    "UPDATE users SET full_name=%s, email=%s, gender=%s, phone_number=%s, age=%s WHERE id=%s",
+                    (full_name, email, gender, phone_number, age, session['user_id'])
                 )
             conn.commit()
         flash('Profile updated successfully!', 'success')

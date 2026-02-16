@@ -52,21 +52,27 @@
                     placeholder="chef@recipehub.com">
             </div>
 
-            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1.5rem;">
+            <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 1rem;">
                 <div class="form-group">
                     <label for="gender"><i class="fas fa-venus-mars"></i> Gender</label>
                     <select id="gender" name="gender" class="form-control" style="appearance: none;">
-                        <option value="" {% if not user.gender %}selected{% endif %}>Prefer not to say</option>
+                        <option value="" {% if not user.gender %}selected{% endif %}>Not Set</option>
                         <option value="Male" {% if user.gender=='Male' %}selected{% endif %}>Male</option>
                         <option value="Female" {% if user.gender=='Female' %}selected{% endif %}>Female</option>
-                        <option value="Other" {% if user.gender=='Other' %}selected{% endif %}>Mixed/Other</option>
+                        <option value="Other" {% if user.gender=='Other' %}selected{% endif %}>Other</option>
                     </select>
                 </div>
 
                 <div class="form-group">
-                    <label for="phone_number"><i class="fas fa-phone-alt"></i> Phone Number</label>
+                    <label for="age"><i class="fas fa-birthday-cake"></i> Age</label>
+                    <input type="number" id="age" name="age" class="form-control" value="{{ user.age or '' }}"
+                        placeholder="Age">
+                </div>
+
+                <div class="form-group">
+                    <label for="phone_number"><i class="fas fa-phone-alt"></i> Phone</label>
                     <input type="tel" id="phone_number" name="phone_number" class="form-control"
-                        value="{{ user.phone_number or '' }}" placeholder="+1 234 567 890">
+                        value="{{ user.phone_number or '' }}" placeholder="Phone">
                 </div>
             </div>
 
