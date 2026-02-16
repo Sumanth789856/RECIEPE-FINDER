@@ -5,9 +5,15 @@
 {% block content %}
 <div style="margin-bottom: 4rem;">
     {% if query %}
-    <h2 style="font-size: 2rem; font-weight: 800; color: var(--text-main); letter-spacing: -0.02em;">Results for "{{
-        query }}"</h2>
-    <p style="color: var(--text-muted); font-size: 1.1rem;">Discovering unique flavors for you...</p>
+    <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 1rem;">
+        <div>
+            <h2 style="font-size: 2rem; font-weight: 800; color: var(--text-main); letter-spacing: -0.02em;">Results for
+                "{{
+                query }}"</h2>
+            <p style="color: var(--text-muted); font-size: 1.1rem;">Discovering unique flavors for you...</p>
+        </div>
+
+    </div>
     {% else %}
     <div
         style="padding: 5rem 2rem; text-align: center; background: linear-gradient(135deg, #fffcf9 0%, #fff7ed 100%); border-radius: 32px; border: 1px solid rgba(249, 115, 22, 0.05); box-shadow: 0 20px 50px rgba(0,0,0,0.02); position: relative; overflow: hidden;">
@@ -24,33 +30,23 @@
     {% endif %}
 </div>
 
-<!-- Category Tabs -->
-<div class="category-tabs">
-    {% set categories = [
-    ('All', 'fa-th-large'),
-    ('Breakfast', 'fa-coffee'),
-    ('Lunch', 'fa-utensils'),
-    ('Dinner', 'fa-moon'),
-    ('Special', 'fa-star'),
-    ('Bakery', 'fa-bread-slice'),
-    ('Veg', 'fa-leaf'),
-    ('Non-Veg', 'fa-drumstick-bite')
-    ] %}
-    {% for cat, icon in categories %}
-    <a href="{{ url_for('index', category=cat) }}" class="tab-btn {% if active_category == cat %}active{% endif %}">
-        <i class="fas {{ icon }}" style="margin-right: 0.5rem; opacity: 0.8;"></i> {{ cat }}
-    </a>
-    {% endfor %}
-</div>
+
 
 <div class="recipe-grid">
     {% for recipe in recipes %}
     <div class="card">
-        <div class="video-container" style="border-radius: 20px 20px 0 0; overflow: hidden;">
-            <video controls preload="metadata" style="width: 100%; border: none;">
+        <div class="video-container" style="border-radius: 20px 20px 0 0; overflow: hidden; position: relative;">
+            <video preload="metadata" style="width: 100%; border: none; cursor: pointer;"
+                onclick="togglePlay(this, {{ recipe.id }})">
                 <source src="{{ url_for('static', filename='uploads/videos/' + recipe.video_filename) }}"
                     type="video/mp4">
             </video>
+            <div class="video-overlay" style="position: absolute; top: 1rem; right: 1rem; pointer-events: none;">
+                <span class="view-badge"
+                    style="background: rgba(0,0,0,0.6); color: white; padding: 0.3rem 0.6rem; border-radius: 8px; font-size: 0.75rem; backdrop-filter: blur(4px);">
+                    <i class="fas fa-eye"></i> {{ recipe.views }} Views
+                </span>
+            </div>
         </div>
         <div class="card-body" style="padding: 1.5rem;">
             <div
@@ -73,15 +69,34 @@
             </p>
 
             <!-- Hidden Data for Modal -->
-            <div class="recipe-data" style="display: none;" data-title="{{ recipe.title }}"
+            <div class="recipe-data" style="display: none;" data-id="{{ recipe.id }}" data-title="{{ recipe.title }}"
                 data-description="{{ recipe.description or '' }}" data-ingredients="{{ recipe.ingredients or '' }}"
                 data-instructions="{{ recipe.instructions or '' }}">
             </div>
 
-            <button class="btn btn-primary" style="width: 100%; margin-top: 1rem; padding: 0.8rem; font-size: 0.9rem;"
-                onclick="viewFullRecipe(this.closest('.card'))">
-                <i class="fas fa-hat-chef"></i> Open Recipe Details
-            </button>
+            <div style="display: flex; gap: 0.5rem; margin-top: 1rem;">
+                <button class="btn btn-primary" style="flex: 1; padding: 0.8rem; font-size: 0.9rem;"
+                    onclick="viewFullRecipe(this.closest('.card'))">
+                    <i class="fas fa-hat-chef"></i> Open Recipe
+                </button>
+                <button class="btn btn-outline like-btn {% if recipe.user_liked %}active{% endif %}"
+                    style="width: 45px; border: 1px solid #e2e8f0; color: #64748b;"
+                    onclick="toggleLike({{ recipe.id }}, this, {{ recipe.like_count or 0 }})">
+                    <i class="{% if recipe.user_liked %}fas{% else %}far{% endif %} fa-heart"></i>
+                </button>
+                <button class="btn btn-outline" style="width: 45px; border: 1px solid #e2e8f0; color: #64748b;"
+                    onclick="shareRecipe('{{ recipe.title }}', {{ recipe.id }})">
+                    <i class="fas fa-share-alt"></i>
+                </button>
+            </div>
+
+            <div
+                style="margin-top: 0.5rem; font-size: 0.8rem; color: #64748b; font-weight: 600; display: flex; gap: 1rem;">
+                <span><i class="fas fa-heart" style="color: #ef4444;"></i> <span class="like-counter">{{
+                        recipe.like_count or 0 }}</span> Likes</span>
+                <span><i class="fas fa-clock"></i> {{ recipe.cooking_time or 0 }} mins</span>
+                <span><i class="fas fa-video"></i> Local</span>
+            </div>
 
             <div
                 style="display: flex; justify-content: space-between; align-items: center; border-top: 1px solid rgba(0,0,0,0.05); padding-top: 1.25rem; margin-top: 1.5rem;">
@@ -121,6 +136,10 @@
                     style="position: absolute; top:0; left:0; width:100%; height:100%; display:flex; align-items:center; justify-content:center; background:rgba(0,0,0,0.2);">
                     <i class="fas fa-play-circle" style="color: white; font-size: 3.5rem; opacity: 0.9;"></i>
                 </div>
+                <div
+                    style="position: absolute; bottom: 0.5rem; right: 0.5rem; background: rgba(0,0,0,0.8); color: white; padding: 0.2rem 0.5rem; border-radius: 4px; font-size: 0.75rem; font-weight: 700;">
+                    {{ video.duration }}
+                </div>
             </div>
             <div class="card-body" style="padding: 1.5rem;">
                 <h3 class="card-title"
@@ -129,11 +148,18 @@
                 <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem;">
                     <span class="badge"
                         style="background: rgba(255, 0, 0, 0.1); color: #ef4444; border: none; font-weight: 700;">Youtube</span>
-                    <span
-                        style="font-size: 0.85rem; font-weight: 700; color: #71717a; background: #f4f4f5; padding: 0.2rem 0.6rem; border-radius: 6px;">{{
-                        video.duration }}</span>
+                    <span style="font-size: 0.8rem; color: #64748b;">
+                        <i class="fas fa-eye"></i> {{ video.viewCount.short or 'Vibrant' }}
+                    </span>
                 </div>
-                <p style="font-size: 0.9rem; color: #52525b; font-weight: 600;">{{ video.channel.name }}</p>
+                <div style="display: flex; justify-content: space-between; align-items: center;">
+                    <p style="font-size: 0.9rem; color: #52525b; font-weight: 600; margin: 0;">{{ video.channel.name }}
+                    </p>
+                    <button class="btn btn-outline" style="padding: 0.4rem; border: 1px solid #e2e8f0; color: #64748b;"
+                        onclick="event.stopPropagation(); shareYT('{{ video.id }}')">
+                        <i class="fas fa-share-alt"></i>
+                    </button>
+                </div>
             </div>
         </div>
         {% endfor %}
@@ -150,9 +176,8 @@
         <div class="modal-header">
             <h2 id="modalTitle"></h2>
             <div style="display: flex; gap: 0.5rem;">
-                <button onclick="downloadRecipePDF()" class="close-simple" title="Download PDF"
-                    style="color: var(--primary);">
-                    <i class="fas fa-file-pdf"></i>
+                <button onclick="downloadRecipePDF()" class="close-simple pdf-download-btn" title="Download PDF">
+                    <i class="fas fa-file-pdf fa-lg"></i>
                 </button>
                 <button class="close-simple" onclick="closeRecipeModal()">
                     <i class="fas fa-times"></i>
@@ -171,7 +196,33 @@
         <div class="simple-section-title">
             <i class="fas fa-list-ol"></i> Instructions
         </div>
-        <div id="modalInstructions" class="compact-steps"></div>
+        <div id="modalInstructions" class="compact-steps" style="margin-bottom: 2rem;"></div>
+
+        <!-- Comment Section -->
+        <div class="simple-section-title" style="border-top: 1px solid #f1f5f9; padding-top: 1.5rem;">
+            <i class="fas fa-comments"></i> Community Feedback
+        </div>
+
+        <div id="commentList" style="margin-bottom: 1.5rem; max-height: 300px; overflow-y: auto;">
+            <!-- Comments will be loaded here -->
+        </div>
+
+        {% if session.get('user_id') %}
+        <div class="comment-input-grid" style="display: flex; gap: 0.75rem;">
+            <input type="text" id="commentText" placeholder="Share your thoughts..."
+                style="flex: 1; padding: 0.75rem 1rem; border-radius: 12px; border: 1px solid #e2e8f0; outline: none; transition: 0.2s;"
+                onfocus="this.style.borderColor='var(--primary)'" onblur="this.style.borderColor='#e2e8f0'">
+            <button class="btn btn-primary" style="padding: 0.75rem 1.25rem;" onclick="submitComment()">
+                <i class="fas fa-paper-plane"></i>
+            </button>
+        </div>
+        {% else %}
+        <p style="text-align: center; color: #64748b; font-size: 0.85rem;">
+            Please <a href="{{ url_for('login') }}" style="color: var(--primary); font-weight: 600;">Sign In</a> to join
+            the conversation.
+        </p>
+        {% endif %}
+        <input type="hidden" id="currentRecipeId">
     </div>
 </div>
 
@@ -187,11 +238,64 @@
 </div>
 
 <script>
+    function togglePlay(btn, recipeId) {
+        if (btn.paused) {
+            btn.play();
+            btn.controls = true;
+            fetch(`/view/${recipeId}`, { method: 'POST' });
+        } else {
+            btn.pause();
+        }
+    }
+
+    async function toggleLike(recipeId, btn, currentCount) {
+        try {
+            const response = await fetch(`/like/${recipeId}`, { method: 'POST' });
+            if (response.status === 401) {
+                window.location.href = "{{ url_for('login') }}";
+                return;
+            }
+            const data = await response.json();
+            const icon = btn.querySelector('i');
+            const counter = btn.closest('.card-body').querySelector('.like-counter');
+
+            if (data.liked) {
+                icon.className = 'fas fa-heart';
+                btn.classList.add('active');
+                btn.style.color = '#ef4444';
+            } else {
+                icon.className = 'far fa-heart';
+                btn.classList.remove('active');
+                btn.style.color = '#64748b';
+            }
+            counter.textContent = data.count;
+        } catch (e) {
+            console.error('Like error:', e);
+        }
+    }
+
+    function shareRecipe(title, id) {
+        const url = window.location.origin + '/?id=' + id;
+        if (navigator.share) {
+            navigator.share({ title: title, url: url });
+        } else {
+            navigator.clipboard.writeText(url);
+            alert('Recipe link copied to clipboard!');
+        }
+    }
+
+    function shareYT(id) {
+        const url = 'https://www.youtube.com/watch?v=' + id;
+        navigator.clipboard.writeText(url);
+        alert('YouTube link copied to clipboard!');
+    }
+
     function viewFullRecipe(cardElement) {
         const data = cardElement.querySelector('.recipe-data').dataset;
 
         document.getElementById('modalTitle').textContent = data.title;
         document.getElementById('modalDescription').textContent = data.description || 'No description provided.';
+        document.getElementById('currentRecipeId').value = data.id;
 
         // Simple Ingredients
         const ingGrid = document.getElementById('modalIngredients');
@@ -220,6 +324,61 @@
 
         document.getElementById('recipeModal').style.display = 'flex';
         document.body.style.overflow = 'hidden';
+        loadComments(data.id);
+    }
+
+    async function loadComments(recipeId) {
+        const container = document.getElementById('commentList');
+        container.innerHTML = '<p style="text-align:center;color:#94a3b8;font-size:0.85rem;">Loading feedback...</p>';
+
+        try {
+            const response = await fetch(`/comments/${recipeId}`);
+            const data = await response.json();
+
+            if (data.comments.length === 0) {
+                container.innerHTML = '<p style="text-align:center;color:#94a3b8;font-size:0.85rem;padding:1rem;">Be the first to share your thoughts!</p>';
+                return;
+            }
+
+            container.innerHTML = data.comments.map(c => `
+                <div style="margin-bottom: 1rem; background: #f8fafc; padding: 0.75rem 1rem; border-radius: 12px;">
+                    <div style="display: flex; justify-content: space-between; margin-bottom: 0.25rem;">
+                        <span style="font-weight: 700; font-size: 0.85rem; color: #334155;">@${c.username}</span>
+                        <span style="font-size: 0.75rem; color: #94a3b8;">${c.created_at}</span>
+                    </div>
+                    <p style="font-size: 0.9rem; color: #475569; margin: 0; line-height: 1.5;">${c.comment}</p>
+                </div>
+            `).join('');
+
+        } catch (e) {
+            container.innerHTML = '<p style="text-align:center;color:#ef4444;font-size:0.85rem;">Failed to load comments.</p>';
+        }
+    }
+
+    async function submitComment() {
+        const input = document.getElementById('commentText');
+        const recipeId = document.getElementById('currentRecipeId').value;
+        const comment = input.value.trim();
+
+        if (!comment) return;
+
+        try {
+            const formData = new FormData();
+            formData.append('recipe_id', recipeId);
+            formData.append('comment', comment);
+
+            const response = await fetch('/comment/post', {
+                method: 'POST',
+                body: formData
+            });
+
+            if (response.ok) {
+                input.value = '';
+                loadComments(recipeId);
+            }
+        } catch (e) {
+            console.error('Submit error:', e);
+        }
     }
 
     function closeRecipeModal() {
@@ -232,55 +391,116 @@
         const doc = new jsPDF();
         const title = document.getElementById('modalTitle').textContent;
         const description = document.getElementById('modalDescription').textContent;
+        const orange = [249, 115, 22];
+        const darkBlue = [30, 41, 59];
+        const textMuted = [100, 116, 139];
 
-        // Stylish Header
-        doc.setFontSize(22);
-        doc.setTextColor(249, 115, 22); // var(--primary)
-        doc.text(title, 20, 20);
+        // --- PDF Header Banner ---
+        doc.setFillColor(orange[0], orange[1], orange[2]);
+        doc.rect(0, 0, 210, 40, 'F');
 
-        doc.setFontSize(12);
-        doc.setTextColor(100, 116, 139);
-        doc.text(description !== 'No description provided.' ? description : '', 20, 30, { maxWidth: 170 });
+        doc.setTextColor(255, 255, 255);
+        doc.setFontSize(28);
+        doc.setFont("helvetica", "bold");
+        doc.text(title.toUpperCase(), 20, 25);
 
-        let yPos = 50;
+        doc.setFontSize(10);
+        doc.setFont("helvetica", "normal");
+        doc.text("RECIPEHUB PREMIUM SELECTION", 20, 33);
 
-        // Ingredients Section
-        doc.setFontSize(16);
-        doc.setTextColor(30, 41, 59);
-        doc.text("Ingredients", 20, yPos);
-        yPos += 10;
+        // --- Content Start ---
+        let yPos = 55;
 
-        doc.setFontSize(12);
+        // Description Box
+        if (description && description !== 'No description provided.') {
+            doc.setFillColor(255, 252, 249);
+            doc.setDrawColor(255, 237, 213);
+            doc.roundedRect(15, yPos - 5, 180, 25, 3, 3, 'FD');
+
+            doc.setTextColor(textMuted[0], textMuted[1], textMuted[2]);
+            doc.setFontSize(11);
+            doc.setFont("helvetica", "italic");
+            const descLines = doc.splitTextToSize(description, 170);
+            doc.text(descLines, 20, yPos + 2);
+            yPos += (descLines.length * 6) + 15;
+        }
+
+        // --- Section Heading: Ingredients ---
+        doc.setFillColor(241, 245, 249);
+        doc.rect(15, yPos - 6, 180, 10, 'F');
+        doc.setDrawColor(orange[0], orange[1], orange[2]);
+        doc.setLineWidth(1);
+        doc.line(15, yPos - 6, 15, yPos + 4); // Left accent line
+
+        doc.setTextColor(darkBlue[0], darkBlue[1], darkBlue[2]);
+        doc.setFontSize(14);
+        doc.setFont("helvetica", "bold");
+        doc.text("INGREDIENTS", 22, yPos);
+        yPos += 12;
+
+        // Ingredient List
+        doc.setFontSize(11);
+        doc.setFont("helvetica", "normal");
         doc.setTextColor(51, 65, 85);
         const ingredients = document.querySelectorAll('.ing-tag');
         ingredients.forEach(ing => {
-            doc.text(`• ${ing.textContent}`, 25, yPos);
-            yPos += 7;
+            doc.setFillColor(orange[0], orange[1], orange[2]);
+            doc.circle(23, yPos - 1.5, 1, 'F'); // Custom bullet point
+            doc.text(ing.textContent, 28, yPos);
+            yPos += 8;
+
+            if (yPos > 270) { doc.addPage(); yPos = 20; }
         });
 
         yPos += 10;
 
-        // Procedure Section
-        doc.setFontSize(16);
-        doc.setTextColor(30, 41, 59);
-        doc.text("Procedure", 20, yPos);
-        yPos += 10;
+        // --- Section Heading: Procedure ---
+        doc.setFillColor(241, 245, 249);
+        doc.rect(15, yPos - 6, 180, 10, 'F');
+        doc.line(15, yPos - 6, 15, yPos + 4); // Left accent line
 
-        doc.setFontSize(12);
-        doc.setTextColor(51, 65, 85);
+        doc.setTextColor(darkBlue[0], darkBlue[1], darkBlue[2]);
+        doc.setFontSize(14);
+        doc.setFont("helvetica", "bold");
+        doc.text("PREPARATION STEPS", 22, yPos);
+        yPos += 15;
+
+        // Procedure List
         const steps = document.querySelectorAll('.simple-step');
         steps.forEach((step, index) => {
-            const lines = doc.splitTextToSize(step.textContent, 160);
-            doc.text(lines, 20, yPos);
-            yPos += (lines.length * 7) + 3;
+            // Step Number Circle
+            doc.setFillColor(orange[0], orange[1], orange[2]);
+            doc.circle(23, yPos - 1, 4, 'F');
+            doc.setTextColor(255, 255, 255);
+            doc.setFontSize(10);
+            doc.text((index + 1).toString(), index + 1 >= 10 ? 21.5 : 22.3, yPos);
 
-            if (yPos > 270) {
-                doc.addPage();
-                yPos = 20;
-            }
+            // Step Content
+            doc.setTextColor(51, 65, 85);
+            doc.setFontSize(11);
+            doc.setFont("helvetica", "normal");
+
+            const cleanText = step.textContent.replace(/^Step \d+: /, '');
+            const stepLines = doc.splitTextToSize(cleanText, 155);
+            doc.text(stepLines, 30, yPos);
+            yPos += (stepLines.length * 6) + 10;
+
+            if (yPos > 270) { doc.addPage(); yPos = 20; }
         });
 
-        doc.save(`${title.replace(/[^a-z0-9]/gi, '_').toLowerCase()}_recipe.pdf`);
+        // --- Branded Footer ---
+        const pageCount = doc.internal.getNumberOfPages();
+        for (let i = 1; i <= pageCount; i++) {
+            doc.setPage(i);
+            doc.setFontSize(10);
+            doc.setTextColor(textMuted[0], textMuted[1], textMuted[2]);
+            doc.setDrawColor(226, 232, 240);
+            doc.line(20, 285, 190, 285);
+            doc.text("Master the Art of Cooking with RecipeHub", 20, 292);
+            doc.text(`Page ${i} of ${pageCount}`, 175, 292);
+        }
+
+        doc.save(`${title.replace(/[^a-z0-9]/gi, '_').toLowerCase()}_recipe_card.pdf`);
     }
 
     function playYouTube(id) {

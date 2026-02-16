@@ -37,13 +37,36 @@ def get_db_connection():
 @app.route('/')
 def index():
     category = request.args.get('category', 'All')
+    sort_by = request.args.get('sort', 'newest')
+    
     conn = get_db_connection()
     try:
         with conn.cursor() as cursor:
+            # Base query with view and like counts
+            query = """
+                SELECT recipes.*, users.username, 
+                (SELECT COUNT(*) FROM recipe_likes WHERE recipe_id = recipes.id) as like_count,
+                (SELECT COUNT(*) FROM recipe_likes WHERE recipe_id = recipes.id AND user_id = %s) as user_liked
+                FROM recipes 
+                JOIN users ON recipes.user_id = users.id
+            """
+            params = [session.get('user_id', 0)]
+            
             if category and category != 'All':
-                cursor.execute("SELECT recipes.*, users.username FROM recipes JOIN users ON recipes.user_id = users.id WHERE category=%s ORDER BY created_at DESC", (category,))
+                query += " WHERE category=%s"
+                params.append(category)
+            
+            # Ranking/Sorting
+            if sort_by == 'oldest':
+                query += " ORDER BY created_at ASC"
+            elif sort_by == 'shortest':
+                query += " ORDER BY cooking_time ASC"
+            elif sort_by == 'longest':
+                query += " ORDER BY cooking_time DESC"
             else:
-                cursor.execute("SELECT recipes.*, users.username FROM recipes JOIN users ON recipes.user_id = users.id ORDER BY created_at DESC")
+                query += " ORDER BY created_at DESC"
+                
+            cursor.execute(query, tuple(params))
             recipes = cursor.fetchall()
     finally:
         conn.close()
@@ -57,7 +80,7 @@ def index():
     except Exception as e:
         print(f"YouTube search error: {e}")
             
-    return render_template('index.html', recipes=recipes, youtube_recipes=youtube_recipes, active_category=category)
+    return render_template('index.html', recipes=recipes, youtube_recipes=youtube_recipes, active_category=category, sort_by=sort_by)
 
 @app.route('/register', methods=['GET', 'POST'])
 def register():
@@ -141,13 +164,13 @@ def upload_recipe():
             filename = f"{int(time.time())}_{filename}"
             file.save(os.path.join(app.config['UPLOAD_FOLDER'], filename))
             
-            conn = get_db_connection()
             try:
                 category = request.form.get('category', 'Other')
+                cooking_time = request.form.get('cooking_time', 0)
                 with conn.cursor() as cursor:
                     cursor.execute(
-                        "INSERT INTO recipes (title, description, ingredients, instructions, video_filename, category, user_id) VALUES (%s, %s, %s, %s, %s, %s, %s)",
-                        (title, description, ingredients, instructions, filename, category, session['user_id'])
+                        "INSERT INTO recipes (title, description, ingredients, instructions, video_filename, category, cooking_time, user_id) VALUES (%s, %s, %s, %s, %s, %s, %s, %s)",
+                        (title, description, ingredients, instructions, filename, category, cooking_time, session['user_id'])
                     )
                     conn.commit()
                 flash('Recipe uploaded successfully!', 'success')
@@ -201,10 +224,11 @@ def edit_recipe(id):
                         new_video_filename = filename
 
                 category = request.form.get('category', recipe['category'])
+                cooking_time = request.form.get('cooking_time', recipe['cooking_time'])
                 
                 cursor.execute(
-                    "UPDATE recipes SET title=%s, description=%s, ingredients=%s, instructions=%s, video_filename=%s, category=%s WHERE id=%s",
-                    (title, description, ingredients, instructions, new_video_filename, category, id)
+                    "UPDATE recipes SET title=%s, description=%s, ingredients=%s, instructions=%s, video_filename=%s, category=%s, cooking_time=%s WHERE id=%s",
+                    (title, description, ingredients, instructions, new_video_filename, category, cooking_time, id)
                 )
                 conn.commit()
                 flash('Recipe updated successfully!', 'success')
@@ -268,6 +292,9 @@ def delete_recipe(id):
 @app.route('/search')
 def search():
     query = request.args.get('q', '')
+    category = request.args.get('category', 'All')
+    sort_by = request.args.get('sort', 'relevance')
+    
     local_recipes = []
     youtube_recipes = []
     
@@ -275,22 +302,123 @@ def search():
         conn = get_db_connection()
         try:
             with conn.cursor() as cursor:
-                # Search in local records
-                cursor.execute("SELECT recipes.*, users.username FROM recipes JOIN users ON recipes.user_id = users.id WHERE title LIKE %s OR description LIKE %s", (f"%{query}%", f"%{query}%"))
+                # Search in local records with stats
+                sql = """
+                    SELECT recipes.*, users.username, 
+                    (SELECT COUNT(*) FROM recipe_likes WHERE recipe_id = recipes.id) as like_count,
+                    (SELECT COUNT(*) FROM recipe_likes WHERE recipe_id = recipes.id AND user_id = %s) as user_liked
+                    FROM recipes 
+                    JOIN users ON recipes.user_id = users.id 
+                    WHERE (title LIKE %s OR description LIKE %s)
+                """
+                params = [session.get('user_id', 0), f"%{query}%", f"%{query}%"]
+                
+                if category != 'All':
+                    sql += " AND category = %s"
+                    params.append(category)
+                    
+                if sort_by == 'oldest':
+                    sql += " ORDER BY created_at ASC"
+                elif sort_by == 'shortest':
+                    sql += " ORDER BY cooking_time ASC"
+                elif sort_by == 'longest':
+                    sql += " ORDER BY cooking_time DESC"
+                else:
+                    sql += " ORDER BY created_at DESC"
+                    
+                cursor.execute(sql, tuple(params))
                 local_recipes = cursor.fetchall()
         finally:
             conn.close()
             
-        # Always search YouTube as well
+        # YouTube search
         try:
-            videosSearch = VideosSearch(query + " recipe", limit = 10)
-            results = videosSearch.result()
-            youtube_recipes = results.get('result', [])
+            yt_query = f"{query} {category if category != 'All' else ''} recipe"
+            videosSearch = VideosSearch(yt_query, limit = 10)
+            youtube_recipes = videosSearch.result().get('result', [])
         except Exception as e:
             print(f"YouTube search error: {e}")
-            youtube_recipes = []
             
-    return render_template('index.html', recipes=local_recipes, youtube_recipes=youtube_recipes, query=query)
+    return render_template('index.html', recipes=local_recipes, youtube_recipes=youtube_recipes, query=query, active_category=category, sort_by=sort_by)
+
+@app.route('/like/<int:recipe_id>', methods=['POST'])
+def toggle_like(recipe_id):
+    if 'user_id' not in session:
+        return {"error": "Authentication required"}, 401
+        
+    conn = get_db_connection()
+    try:
+        with conn.cursor() as cursor:
+            cursor.execute("SELECT id FROM recipe_likes WHERE recipe_id=%s AND user_id=%s", (recipe_id, session['user_id']))
+            like = cursor.fetchone()
+            
+            if like:
+                cursor.execute("DELETE FROM recipe_likes WHERE id=%s", (like['id'],))
+                liked = False
+            else:
+                cursor.execute("INSERT INTO recipe_likes (recipe_id, user_id) VALUES (%s, %s)", (recipe_id, session['user_id']))
+                liked = True
+            
+            cursor.execute("SELECT COUNT(*) as count FROM recipe_likes WHERE recipe_id=%s", (recipe_id,))
+            count = cursor.fetchone()['count']
+            conn.commit()
+            return {"liked": liked, "count": count}
+    finally:
+        conn.close()
+
+@app.route('/view/<int:recipe_id>', methods=['POST'])
+def increment_view(recipe_id):
+    conn = get_db_connection()
+    try:
+        with conn.cursor() as cursor:
+            cursor.execute("UPDATE recipes SET views = views + 1 WHERE id=%s", (recipe_id,))
+            conn.commit()
+            return {"status": "success"}
+    finally:
+        conn.close()
+
+@app.route('/comments/<int:recipe_id>')
+def get_comments(recipe_id):
+    conn = get_db_connection()
+    try:
+        with conn.cursor() as cursor:
+            cursor.execute("""
+                SELECT comments.*, users.username, users.profile_photo 
+                FROM comments 
+                JOIN users ON comments.user_id = users.id 
+                WHERE recipe_id = %s 
+                ORDER BY created_at DESC
+            """, (recipe_id,))
+            comments = cursor.fetchall()
+            # Convert datetime to string for JSON serialization
+            for c in comments:
+                c['created_at'] = c['created_at'].strftime('%b %d, %H:%M')
+            return {"comments": comments}
+    finally:
+        conn.close()
+
+@app.route('/comment/post', methods=['POST'])
+def post_comment():
+    if 'user_id' not in session:
+        return {"error": "Authentication required"}, 401
+    
+    recipe_id = request.form.get('recipe_id')
+    comment_text = request.form.get('comment')
+    
+    if not comment_text:
+        return {"error": "Comment cannot be empty"}, 400
+        
+    conn = get_db_connection()
+    try:
+        with conn.cursor() as cursor:
+            cursor.execute(
+                "INSERT INTO comments (recipe_id, user_id, comment) VALUES (%s, %s, %s)",
+                (recipe_id, session['user_id'], comment_text)
+            )
+            conn.commit()
+            return {"status": "success"}
+    finally:
+        conn.close()
 
 @app.route('/profile')
 def profile():

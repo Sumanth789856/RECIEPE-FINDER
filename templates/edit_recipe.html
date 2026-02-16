@@ -39,6 +39,12 @@
         </div>
 
         <div class="form-group">
+            <label for="cooking_time">Cooking Time (minutes)</label>
+            <input type="number" id="cooking_time" name="cooking_time" class="form-control" required
+                value="{{ recipe.cooking_time }}" min="1">
+        </div>
+
+        <div class="form-group">
             <label>Current Video</label>
             <div style="margin-bottom: 1rem;">
                 <video width="100%" style="border-radius: 10px; max-height: 200px; background: #000;" controls>

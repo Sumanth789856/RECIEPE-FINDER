@@ -19,8 +19,11 @@
         </a>
         <div class="search-container">
             <form action="{{ url_for('search') }}" method="GET">
-                <button type="submit"><i class="fas fa-search"></i></button>
-                <input type="text" name="q" placeholder="Find a recipe..." value="{{ query or '' }}" autocomplete="off">
+                <input type="text" name="q" placeholder="Search for your favorite recipes..." value="{{ query or '' }}"
+                    autocomplete="off">
+                <button type="submit">
+                    <i class="fas fa-search"></i>
+                </button>
             </form>
         </div>
         <ul class="nav-links">
@@ -38,18 +41,71 @@
     </nav>
 
     <div class="container">
-        {% with messages = get_flashed_messages(with_categories=true) %}
-        {% if messages %}
-        <div style="margin-bottom: 2rem;">
-            {% for category, message in messages %}
-            <div class="alert alert-{{ category }}"
-                style="padding: 1rem; border-radius: 12px; background: #eff6ff; color: #1d4ed8; border: 1px solid #dbeafe; font-weight: 500;">
-                <i class="fas fa-info-circle"></i> {{ message }}
-            </div>
-            {% endfor %}
+        <!-- Toast Notification Container -->
+        <div id="toast-container"
+            style="position: fixed; top: 2rem; right: 2rem; z-index: 9999; display: flex; flex-direction: column; gap: 0.75rem; pointer-events: none;">
         </div>
-        {% endif %}
-        {% endwith %}
+
+        <script>
+            function showToast(message, type = 'success') {
+                const container = document.getElementById('toast-container');
+                const toast = document.createElement('div');
+
+                // Icon selection
+                const icon = type === 'success' ? 'fa-check-circle' :
+                    type === 'danger' ? 'fa-exclamation-triangle' :
+                        type === 'info' ? 'fa-info-circle' : 'fa-bell';
+
+                toast.style.cssText = `
+                background: white;
+                color: #1e293b;
+                padding: 1rem 1.5rem;
+                border-radius: 16px;
+                box-shadow: 0 10px 25px rgba(0,0,0,0.1);
+                display: flex;
+                align-items: center;
+                gap: 0.75rem;
+                min-width: 300px;
+                border-left: 5px solid ${type === 'danger' ? '#ef4444' : 'var(--primary)'};
+                transform: translateX(120%);
+                transition: transform 0.5s cubic-bezier(0.68, -0.55, 0.265, 1.55), opacity 0.5s;
+                opacity: 0;
+                pointer-events: auto;
+                font-weight: 600;
+            `;
+
+                toast.innerHTML = `
+                <i class="fas ${icon}" style="color: ${type === 'danger' ? '#ef4444' : 'var(--primary)'}; font-size: 1.25rem;"></i>
+                <span>${message}</span>
+            `;
+
+                container.appendChild(toast);
+
+                // Trigger animation
+                setTimeout(() => {
+                    toast.style.transform = 'translateX(0)';
+                    toast.style.opacity = '1';
+                }, 100);
+
+                // Auto hide
+                setTimeout(() => {
+                    toast.style.transform = 'translateX(120%)';
+                    toast.style.opacity = '0';
+                    setTimeout(() => toast.remove(), 500);
+                }, 5000);
+            }
+
+            // Handle Flask Flash Messages
+            window.onload = () => {
+                {% with messages = get_flashed_messages(with_categories = true) %}
+                {% if messages %}
+                {% for category, message in messages %}
+                showToast("{{ message }}", "{{ category }}");
+                {% endfor %}
+                {% endif %}
+                {% endwith %}
+            }
+        </script>
 
         {% block content %}{% endblock %}
     </div>

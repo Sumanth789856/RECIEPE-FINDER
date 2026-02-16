@@ -75,6 +75,7 @@ def create_tables():
             instructions TEXT,
             video_filename VARCHAR(255),
             category VARCHAR(50),
+            cooking_time INT DEFAULT 0,
             user_id INT,
             created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
             FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
@@ -89,9 +90,13 @@ def create_tables():
             print("Ingredients and instructions columns added to recipes table.")
         except: pass
 
-        # Add category column if it doesn't exist (already handled but keeping consistency)
         try:
             cursor.execute("ALTER TABLE recipes ADD COLUMN category VARCHAR(50) AFTER video_filename")
+        except: pass
+
+        try:
+            cursor.execute("ALTER TABLE recipes ADD COLUMN cooking_time INT DEFAULT 0 AFTER category")
+            print("Cooking time column added to recipes table.")
         except: pass
 
         # Check if admin exists, if not create one
