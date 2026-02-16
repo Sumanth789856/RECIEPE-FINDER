@@ -1,5 +1,5 @@
 Flask
-pymysql
+psycopg2-binary
 python-dotenv
 werkzeug
 youtube-search-python
