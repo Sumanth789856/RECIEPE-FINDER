@@ -1,0 +1,51 @@
+{% extends 'base.html' %}
+
+{% block title %}Upload Recipe - RecipeHub{% endblock %}
+
+{% block content %}
+<div class="upload-container">
+    <h2 style="margin-bottom: 1.5rem; text-align: center;">Share Your Recipe Video</h2>
+    <form method="POST" enctype="multipart/form-data">
+        <div class="form-group">
+            <label for="title">Recipe Title</label>
+            <input type="text" id="title" name="title" class="form-control" required
+                placeholder="e.g., Authentic Italian Carbonara">
+        </div>
+
+        <div class="form-group">
+            <label for="description">Steps & Ingredients</label>
+            <textarea id="description" name="description" class="form-control" rows="6" required
+                placeholder="List ingredients and cooking steps..."></textarea>
+        </div>
+
+        <div class="form-group">
+            <label for="category">Category</label>
+            <select id="category" name="category" class="form-control" required>
+                <option value="" disabled selected>Select Category</option>
+                <option value="Breakfast">Breakfast</option>
+                <option value="Lunch">Lunch</option>
+                <option value="Dinner">Dinner</option>
+                <option value="Special">Special</option>
+                <option value="Bakery">Bakery</option>
+                <option value="Veg">Veg</option>
+                <option value="Non-Veg">Non-Veg</option>
+            </select>
+        </div>
+
+        <div class="form-group">
+            <label for="video">Upload Video (MP4, AVI, MOV)</label>
+            <div style="border: 2px dashed #444; padding: 2rem; text-align: center; border-radius: 10px; cursor: pointer;"
+                onclick="document.getElementById('video').click()">
+                <i class="fas fa-cloud-upload-alt"
+                    style="font-size: 3rem; color: var(--primary-color); margin-bottom: 1rem;"></i>
+                <p>Click to select video file</p>
+                <input type="file" id="video" name="video" accept="video/*" required style="display: none;"
+                    onchange="document.querySelector('.file-name').textContent = this.files[0].name">
+                <p class="file-name" style="margin-top: 0.5rem; color: var(--secondary-color); font-size: 0.9rem;"></p>
+            </div>
+        </div>
+
+        <button type="submit" class="btn btn-primary" style="width: 100%; margin-top: 1rem;">Upload Recipe</button>
+    </form>
+</div>
+{% endblock %}

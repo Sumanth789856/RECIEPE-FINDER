@@ -1,0 +1,56 @@
+{% extends 'base.html' %}
+
+{% block title %}Edit Recipe - RecipeHub{% endblock %}
+
+{% block content %}
+<div class="upload-container">
+    <h2 style="margin-bottom: 1.5rem; text-align: center;">Edit Your Recipe</h2>
+    <form method="POST" enctype="multipart/form-data">
+        <div class="form-group">
+            <label for="title">Recipe Title</label>
+            <input type="text" id="title" name="title" class="form-control" required value="{{ recipe.title }}">
+        </div>
+
+        <div class="form-group">
+            <label for="description">Steps & Ingredients</label>
+            <textarea id="description" name="description" class="form-control" rows="6"
+                required>{{ recipe.description }}</textarea>
+        </div>
+
+        <div class="form-group">
+            <label for="category">Category</label>
+            <select id="category" name="category" class="form-control" required>
+                {% for cat in ['Breakfast', 'Lunch', 'Dinner', 'Special', 'Bakery', 'Veg', 'Non-Veg'] %}
+                <option value="{{ cat }}" {% if recipe.category==cat %}selected{% endif %}>{{ cat }}</option>
+                {% endfor %}
+            </select>
+        </div>
+
+        <div class="form-group">
+            <label>Current Video</label>
+            <div style="margin-bottom: 1rem;">
+                <video width="100%" style="border-radius: 10px; max-height: 200px; background: #000;" controls>
+                    <source src="{{ url_for('static', filename='uploads/videos/' + recipe.video_filename) }}"
+                        type="video/mp4">
+                </video>
+            </div>
+
+            <label for="video">Change Video (Optional)</label>
+            <div style="border: 2px dashed #444; padding: 1.5rem; text-align: center; border-radius: 10px; cursor: pointer;"
+                onclick="document.getElementById('video').click()">
+                <i class="fas fa-video-slash"
+                    style="font-size: 2rem; color: var(--text-secondary); margin-bottom: 0.5rem;"></i>
+                <p>Click to replace video file</p>
+                <input type="file" id="video" name="video" accept="video/*" style="display: none;"
+                    onchange="document.querySelector('.file-name').textContent = this.files[0].name">
+                <p class="file-name" style="margin-top: 0.5rem; color: var(--secondary-color); font-size: 0.9rem;"></p>
+            </div>
+        </div>
+
+        <div style="display: flex; gap: 1rem; margin-top: 2rem;">
+            <a href="{{ url_for('dashboard') }}" class="btn btn-danger" style="flex: 1; text-align: center;">Cancel</a>
+            <button type="submit" class="btn btn-primary" style="flex: 2;">Save Changes</button>
+        </div>
+    </form>
+</div>
+{% endblock %}

@@ -1,0 +1,96 @@
+{% extends "base.html" %}
+
+{% block title %}User Profile - RecipeHub{% endblock %}
+
+{% block content %}
+<div class="profile-container" style="max-width: 700px; margin: 0 auto; animation: fadeIn 0.8s ease;">
+    <div class="header-section" style="text-align: center; margin-bottom: 3rem;">
+        <h1 style="font-size: 2.5rem;"><i class="fas fa-id-card"></i> Your Identity</h1>
+        <p style="color: var(--text-secondary);">Manage your culinary profile and personal preferences.</p>
+    </div>
+
+    <div class="profile-card"
+        style="background: var(--surface-color); padding: 3rem; border-radius: 30px; border: 1px solid var(--glass-border); position: relative;">
+        <!-- Glowing background effect -->
+        <div
+            style="position: absolute; top: -20px; right: -20px; width: 100px; height: 100px; background: var(--primary-gradient); filter: blur(50px); opacity: 0.2;">
+        </div>
+
+        <div class="profile-header" style="text-align: center; margin-bottom: 3rem;">
+            <div class="profile-photo-wrapper"
+                style="position: relative; width: 150px; height: 150px; margin: 0 auto 1.5rem; border-radius: 50%; padding: 5px; background: var(--primary-gradient);">
+                <div
+                    style="width: 100%; height: 100%; border-radius: 50%; overflow: hidden; background: var(--bg-color);">
+                    {% if user.profile_photo %}
+                    <img src="{{ url_for('static', filename='uploads/profiles/' + user.profile_photo) }}"
+                        alt="Profile Photo" style="width: 100%; height: 100%; object-fit: cover;">
+                    {% else %}
+                    <div
+                        style="width: 100%; height: 100%; display: flex; align-items: center; justify-content: center; font-size: 4rem; color: var(--text-secondary);">
+                        <i class="fas fa-user-circle"></i>
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+            <h2 style="font-size: 2rem; margin-bottom: 0.5rem;">{{ user.username }}</h2>
+            <span class="badge {{ 'badge-admin' if user.role == 'admin' else '' }}" style="font-size: 0.9rem;">
+                <i class="fas {{ 'fa-user-shield' if user.role == 'admin' else 'fa-user' }}"></i> {{
+                user.role|capitalize }} Member
+            </span>
+        </div>
+
+        <form action="{{ url_for('update_profile') }}" method="POST" enctype="multipart/form-data" class="profile-form">
+            <div class="form-group">
+                <label for="full_name"><i class="fas fa-signature"></i> Full Name</label>
+                <input type="text" id="full_name" name="full_name" class="form-control"
+                    value="{{ user.full_name or '' }}" placeholder="E.g. Chef Alessandro">
+            </div>
+
+            <div class="form-group">
+                <label for="email"><i class="fas fa-envelope-open-text"></i> Email Address</label>
+                <input type="email" id="email" name="email" class="form-control" value="{{ user.email or '' }}"
+                    placeholder="chef@recipehub.com">
+            </div>
+
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1.5rem;">
+                <div class="form-group">
+                    <label for="gender"><i class="fas fa-venus-mars"></i> Gender</label>
+                    <select id="gender" name="gender" class="form-control" style="appearance: none;">
+                        <option value="" {% if not user.gender %}selected{% endif %}>Prefer not to say</option>
+                        <option value="Male" {% if user.gender=='Male' %}selected{% endif %}>Male</option>
+                        <option value="Female" {% if user.gender=='Female' %}selected{% endif %}>Female</option>
+                        <option value="Other" {% if user.gender=='Other' %}selected{% endif %}>Mixed/Other</option>
+                    </select>
+                </div>
+
+                <div class="form-group">
+                    <label for="phone_number"><i class="fas fa-phone-alt"></i> Phone Number</label>
+                    <input type="tel" id="phone_number" name="phone_number" class="form-control"
+                        value="{{ user.phone_number or '' }}" placeholder="+1 234 567 890">
+                </div>
+            </div>
+
+            <div class="form-group" style="margin-top: 1rem;">
+                <label for="profile_photo"><i class="fas fa-cloud-upload-alt"></i> Update Profile Photo</label>
+                <div style="border: 2px dashed var(--glass-border); padding: 1.5rem; border-radius: 16px; text-align: center; cursor: pointer; transition: 0.3s;"
+                    onmouseover="this.style.borderColor='var(--primary-color)'"
+                    onmouseout="this.style.borderColor='var(--glass-border)'"
+                    onclick="document.getElementById('profile_photo').click()">
+                    <i class="fas fa-image"
+                        style="font-size: 1.5rem; color: var(--text-secondary); margin-bottom: 0.5rem;"></i>
+                    <p style="font-size: 0.9rem; color: var(--text-secondary);">Click to choose a new photo</p>
+                    <input type="file" id="profile_photo" name="profile_photo" accept="image/*" style="display: none;"
+                        onchange="this.previousElementSibling.textContent = this.files[0].name">
+                </div>
+            </div>
+
+            <div style="margin-top: 3rem;">
+                <button type="submit" class="btn btn-primary"
+                    style="width: 100%; border-radius: 18px; padding: 1.2rem;">
+                    <i class="fas fa-save"></i> Preserve Changes
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+{% endblock %}

@@ -1,0 +1,6 @@
+Flask
+pymysql
+python-dotenv
+werkzeug
+youtube-search-python
+httpx==0.27.2

@@ -1,0 +1,152 @@
+{% extends 'base.html' %}
+
+{% block title %}Explore Recipes - RecipeHub{% endblock %}
+
+{% block content %}
+<div style="margin-bottom: 4rem;">
+    {% if query %}
+    <h2 style="font-size: 2rem; font-weight: 800; color: var(--text-main); letter-spacing: -0.02em;">Results for "{{
+        query }}"</h2>
+    <p style="color: var(--text-muted); font-size: 1.1rem;">Discovering unique flavors for you...</p>
+    {% else %}
+    <div
+        style="padding: 5rem 2rem; text-align: center; background: linear-gradient(135deg, #fffcf9 0%, #fff7ed 100%); border-radius: 32px; border: 1px solid rgba(249, 115, 22, 0.05); box-shadow: 0 20px 50px rgba(0,0,0,0.02); position: relative; overflow: hidden;">
+        <div
+            style="position: absolute; top: -10%; right: -5%; width: 300px; height: 300px; background: radial-gradient(circle, rgba(249, 115, 22, 0.05) 0%, transparent 70%); border-radius: 50%;">
+        </div>
+        <h1
+            style="font-size: 3.5rem; font-weight: 900; color: #1c1917; margin-bottom: 1.5rem; letter-spacing: -0.04em; line-height: 1.1;">
+            Savor Every <span style="color: var(--primary);">Moment.</span></h1>
+        <p style="font-size: 1.25rem; color: #44403c; max-width: 650px; margin: 0 auto; line-height: 1.7;">
+            Master new flavors and share your culinary journey with a community that loves food as much as you do.
+        </p>
+    </div>
+    {% endif %}
+</div>
+
+<!-- Category Tabs -->
+<div class="category-tabs">
+    {% set categories = [
+    ('All', 'fa-th-large'),
+    ('Breakfast', 'fa-coffee'),
+    ('Lunch', 'fa-utensils'),
+    ('Dinner', 'fa-moon'),
+    ('Special', 'fa-star'),
+    ('Bakery', 'fa-bread-slice'),
+    ('Veg', 'fa-leaf'),
+    ('Non-Veg', 'fa-drumstick-bite')
+    ] %}
+    {% for cat, icon in categories %}
+    <a href="{{ url_for('index', category=cat) }}" class="tab-btn {% if active_category == cat %}active{% endif %}">
+        <i class="fas {{ icon }}" style="margin-right: 0.5rem; opacity: 0.8;"></i> {{ cat }}
+    </a>
+    {% endfor %}
+</div>
+
+<div class="recipe-grid">
+    {% for recipe in recipes %}
+    <div class="card">
+        <div class="video-container" style="border-radius: 20px 20px 0 0; overflow: hidden;">
+            <video controls preload="metadata" style="width: 100%; border: none;">
+                <source src="{{ url_for('static', filename='uploads/videos/' + recipe.video_filename) }}"
+                    type="video/mp4">
+            </video>
+        </div>
+        <div class="card-body" style="padding: 1.5rem;">
+            <div
+                style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 0.75rem;">
+                <h3 class="card-title" style="margin: 0; font-size: 1.25rem;">{{ recipe.title }}</h3>
+                <span class="badge"
+                    style="background: rgba(249, 115, 22, 0.1); color: var(--primary); border: none; font-weight: 700;">{{
+                    recipe.category or 'Recipe' }}</span>
+            </div>
+            <p class="card-text" style="color: #52525b; line-height: 1.6;">{{ recipe.description|truncate(100) }}</p>
+            <div
+                style="display: flex; justify-content: space-between; align-items: center; border-top: 1px solid rgba(0,0,0,0.05); padding-top: 1.25rem; margin-top: 0.5rem;">
+                <div style="display: flex; align-items: center; gap: 0.5rem;">
+                    <div
+                        style="width: 32px; height: 32px; background: var(--primary); border-radius: 50%; display: flex; align-items: center; justify-content: center; color: white; font-size: 0.8rem; font-weight: 800;">
+                        {{ recipe.username[0]|upper }}
+                    </div>
+                    <span style="font-weight: 600; font-size: 0.9rem; color: #3f3f46;">{{ recipe.username }}</span>
+                </div>
+                <span style="font-size: 0.85rem; color: #a1a1aa; font-weight: 500;">
+                    <i class="far fa-calendar-alt" style="margin-right: 0.3rem;"></i>
+                    {{ recipe.created_at.strftime('%b %d') if recipe.created_at else '' }}
+                </span>
+            </div>
+        </div>
+    </div>
+    {% endfor %}
+</div>
+
+{% if youtube_recipes %}
+<div style="margin-top: 5rem;">
+    <h2
+        style="font-size: 1.5rem; font-weight: 800; margin-bottom: 2rem; display: flex; align-items: center; gap: 0.75rem;">
+        <i class="fab fa-youtube" style="color: #ff0000; font-size: 1.8rem;"></i>
+        {% if active_category and active_category != 'All' %}{{ active_category }} Reference Videos{% else %}Trending on
+        YouTube{% endif %}
+    </h2>
+    <div class="recipe-grid">
+        {% for video in youtube_recipes %}
+        <div class="card" onclick="playYouTube('{{ video.id }}')"
+            style="cursor: pointer; border: 1px solid rgba(255, 0, 0, 0.05);">
+            <div class="thumbnail-container" style="border-radius: 20px 20px 0 0; overflow: hidden;">
+                <img src="{{ video.thumbnails[0].url if video.thumbnails else '' }}" alt="{{ video.title }}"
+                    style="transition: transform 0.5s ease;">
+                <div
+                    style="position: absolute; top:0; left:0; width:100%; height:100%; display:flex; align-items:center; justify-content:center; background:rgba(0,0,0,0.2); transition: background 0.3s ease;">
+                    <i class="fas fa-play-circle"
+                        style="color: white; font-size: 3.5rem; opacity: 0.9; text-shadow: 0 4px 12px rgba(0,0,0,0.3);"></i>
+                </div>
+            </div>
+            <div class="card-body" style="padding: 1.5rem;">
+                <h3 class="card-title"
+                    style="height: 2.8em; overflow: hidden; line-height: 1.4; font-size: 1.1rem; margin-bottom: 1rem;">
+                    {{ video.title }}</h3>
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem;">
+                    <span class="badge"
+                        style="background: rgba(255, 0, 0, 0.1); color: #ef4444; border: none; font-weight: 700;">
+                        <i class="fab fa-youtube" style="margin-right: 0.3rem;"></i> Youtube
+                    </span>
+                    <span
+                        style="font-size: 0.85rem; font-weight: 700; color: #71717a; background: #f4f4f5; padding: 0.2rem 0.6rem; border-radius: 6px;">{{
+                        video.duration }}</span>
+                </div>
+                <div
+                    style="display: flex; align-items: center; gap: 0.6rem; border-top: 1px solid rgba(0,0,0,0.05); padding-top: 1rem;">
+                    <i class="fas fa-tv" style="color: #a1a1aa; font-size: 0.9rem;"></i>
+                    <p style="font-size: 0.9rem; color: #52525b; font-weight: 600; margin: 0;">{{ video.channel.name }}
+                    </p>
+                </div>
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+</div>
+{% endif %}
+
+<!-- Simple Player Modal -->
+<div id="videoModal" class="modal" onclick="closeModal()">
+    <div class="modal-content" onclick="event.stopPropagation()">
+        <div style="position: relative; padding-bottom: 56.25%; height: 0;">
+            <iframe id="youtubePlayer" style="position: absolute; top: 0; left: 0; width: 100%; height: 100%;"
+                frameborder="0" allow="autoplay; fullscreen"></iframe>
+        </div>
+    </div>
+</div>
+
+<script>
+    function playYouTube(id) {
+        document.getElementById('youtubePlayer').src = `https://www.youtube.com/embed/${id}?autoplay=1`;
+        document.getElementById('videoModal').style.display = 'block';
+        document.body.style.overflow = 'hidden';
+    }
+    function closeModal() {
+        document.getElementById('videoModal').style.display = 'none';
+        document.getElementById('youtubePlayer').src = '';
+        document.body.style.overflow = 'auto';
+    }
+</script>
+{% endblock %}

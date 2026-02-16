@@ -1,0 +1,22 @@
+{% extends 'base.html' %}
+
+{% block title %}Login - RecipeHub{% endblock %}
+
+{% block content %}
+<div class="auth-form">
+    <h2 style="text-align: center; margin-bottom: 2rem;">Welcome Back!</h2>
+    <form method="POST">
+        <label for="username">Username</label>
+        <input type="text" id="username" name="username" class="form-control" required placeholder="Enter username">
+
+        <label for="password" style="margin-top: 1rem;">Password</label>
+        <input type="password" id="password" name="password" class="form-control" required placeholder="Enter password">
+
+        <button type="submit" class="btn btn-primary" style="width: 100%; margin-top: 2rem;">Login</button>
+    </form>
+    <p style="margin-top: 1rem; text-align: center; font-size: 0.9rem;">
+        Do not have an account? <a href="{{ url_for('register') }}" style="color: var(--primary-color);">Register
+            here</a>
+    </p>
+</div>
+{% endblock %}
