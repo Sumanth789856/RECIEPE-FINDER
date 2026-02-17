@@ -1,144 +1,574 @@
 {% extends 'base.html' %}
 
-{% block title %}Manage Users - Admin Console{% endblock %}
+{% block title %}User Directory - RecipeHub Pro Admin{% endblock %}
 
 {% block content %}
 <style>
-    .user-avatar {
-        width: 40px;
-        height: 40px;
-        border-radius: 12px;
+    :root {
+        --admin-bg: #f8fafc;
+        --card-shadow: 0 10px 30px -5px rgba(0, 0, 0, 0.04), 0 4px 6px -2px rgba(0, 0, 0, 0.02);
+        --glass-bg: rgba(255, 255, 255, 0.85);
+        --glass-border: rgba(255, 255, 255, 0.5);
+    }
+
+    .admin-wrapper {
+        max-width: 1300px;
+        margin: 0 auto;
+        padding: 2rem 1.5rem;
+    }
+
+    /* --- Vibrant Header --- */
+    .directory-header {
+        margin-bottom: 3.5rem;
+        position: relative;
+    }
+
+    .directory-title {
+        font-size: 3.2rem;
+        font-weight: 900;
+        color: #0f172a;
+        letter-spacing: -2px;
+        line-height: 1;
+        margin-bottom: 0.75rem;
+        background: linear-gradient(135deg, #0f172a 0%, #334155 100%);
+        -webkit-background-clip: text;
+        background-clip: text;
+        -webkit-text-fill-color: transparent;
+    }
+
+    .directory-subtitle {
+        color: #64748b;
+        font-size: 1.1rem;
+        font-weight: 500;
+        max-width: 600px;
+    }
+
+    /* --- Premium Stats Bar --- */
+    .stats-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+        gap: 1.5rem;
+        margin-bottom: 3.5rem;
+    }
+
+    .stat-premium-card {
+        background: white;
+        padding: 1.75rem;
+        border-radius: 24px;
+        border: 1px solid rgba(0, 0, 0, 0.03);
+        box-shadow: var(--card-shadow);
+        display: flex;
+        align-items: center;
+        gap: 1.25rem;
+        transition: transform 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+    }
+
+    .stat-premium-card:hover {
+        transform: translateY(-8px);
+    }
+
+    .stat-icon-box {
+        width: 56px;
+        height: 56px;
+        border-radius: 16px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 1.5rem;
+    }
+
+    .stat-data .label {
+        font-size: 0.85rem;
+        font-weight: 700;
+        color: #94a3b8;
+        text-transform: uppercase;
+        letter-spacing: 1px;
+    }
+
+    .stat-data .value {
+        font-size: 1.8rem;
+        font-weight: 900;
+        color: #1e293b;
+        line-height: 1.2;
+    }
+
+    /* --- Glass Table System --- */
+    .table-container-glass {
+        background: var(--glass-bg);
+        backdrop-filter: blur(12px);
+        border-radius: 32px;
+        border: 1px solid var(--glass-border);
+        box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.08);
+        overflow: hidden;
+    }
+
+    .directory-table {
+        width: 100%;
+        border-collapse: separate;
+        border-spacing: 0;
+    }
+
+    .directory-table th {
+        background: rgba(248, 250, 252, 0.5);
+        padding: 1.25rem 1.5rem;
+        text-align: left;
+        font-size: 0.75rem;
+        font-weight: 800;
+        color: #64748b;
+        text-transform: uppercase;
+        letter-spacing: 1.5px;
+        border-bottom: 1px solid #f1f5f9;
+    }
+
+    .directory-table td {
+        padding: 1.25rem 1.5rem;
+        vertical-align: middle;
+        border-bottom: 1px solid #f8fafc;
+        transition: 0.2s;
+    }
+
+    .directory-table tr:last-child td {
+        border-bottom: none;
+    }
+
+    .directory-table tr:hover td {
+        background: rgba(241, 245, 249, 0.3);
+    }
+
+    /* --- User Profile Column --- */
+    .user-info-flex {
+        display: flex;
+        align-items: center;
+        gap: 1rem;
+    }
+
+    .directory-avatar {
+        width: 48px;
+        height: 48px;
+        border-radius: 14px;
         display: flex;
         align-items: center;
         justify-content: center;
         font-weight: 800;
-        background: #f1f5f9;
-        color: #64748b;
+        font-size: 1.1rem;
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
     }
 
-    .user-avatar.admin-avatar {
-        background: linear-gradient(135deg, #fbbf24, #f97316);
+    .user-meta .name {
+        font-weight: 800;
+        color: #1e293b;
+        font-size: 1.05rem;
+        display: block;
+    }
+
+    .user-meta .username {
+        color: #94a3b8;
+        font-size: 0.85rem;
+        font-weight: 600;
+    }
+
+    /* --- Action Toolbar --- */
+    .action-toolbar {
+        display: flex;
+        gap: 0.5rem;
+        justify-content: flex-end;
+    }
+
+    .tool-btn {
+        width: 42px;
+        height: 42px;
+        border-radius: 12px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        border: 1px solid transparent;
+        transition: 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        cursor: pointer;
+        text-decoration: none;
+        font-size: 1rem;
+    }
+
+    .tool-btn.view {
+        background: #f0f9ff;
+        color: #0284c7;
+        border-color: #e0f2fe;
+    }
+
+    .tool-btn.role {
+        background: #fffbeb;
+        color: #d97706;
+        border-color: #fef3c7;
+    }
+
+    .tool-btn.delete {
+        background: #fef2f2;
+        color: #dc2626;
+        border-color: #fee2e2;
+    }
+
+    .tool-btn:hover {
+        transform: translateY(-3px);
+        filter: brightness(0.95);
+        box-shadow: 0 5px 15px rgba(0, 0, 0, 0.08);
+    }
+
+    /* --- Badge Systems --- */
+    .role-pill {
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        padding: 0.5rem 0.85rem;
+        border-radius: 20px;
+        font-size: 0.75rem;
+        font-weight: 800;
+        letter-spacing: 0.5px;
+    }
+
+    .role-pill.admin {
+        background: linear-gradient(135deg, #fef3c7 0%, #fffbeb 100%);
+        color: #d97706;
+        border: 1px solid #fde68a;
+    }
+
+    .role-pill.user {
+        background: #f1f5f9;
+        color: #475569;
+        border: 1px solid #e2e8f0;
+    }
+
+    /* --- Modal Overhaul --- */
+    .user-modal-overlay {
+        position: fixed;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        background: rgba(15, 23, 42, 0.6);
+        backdrop-filter: blur(8px);
+        z-index: 10000;
+        display: none;
+        align-items: center;
+        justify-content: center;
+        padding: 1.5rem;
+        animation: fadeIn 0.4s ease;
+    }
+
+    .user-modal-overlay.active {
+        display: flex;
+    }
+
+    .user-modal-modern {
+        background: white;
+        width: 100%;
+        max-width: 400px;
+        max-height: 85vh;
+        border-radius: 28px;
+        overflow-y: auto;
+        box-shadow: 0 40px 100px -20px rgba(15, 23, 42, 0.4);
+        animation: slideUpModal 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+        display: flex;
+        flex-direction: column;
+        position: relative;
+        scrollbar-width: none;
+        /* Hide scrollbar for clean look */
+    }
+
+    .user-modal-modern::-webkit-scrollbar {
+        display: none;
+    }
+
+    .modal-close-trigger {
+        position: sticky;
+        top: 1rem;
+        align-self: flex-end;
+        margin-right: 1rem;
+        margin-top: -2.5rem;
+        /* Pull button up into header area */
+        width: 32px;
+        height: 32px;
+        border-radius: 10px;
+        background: rgba(255, 255, 255, 0.15);
+        backdrop-filter: blur(10px);
+        border: 1px solid rgba(255, 255, 255, 0.1);
+        color: white;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        cursor: pointer;
+        z-index: 100;
+        transition: 0.3s;
+    }
+
+    .modal-close-trigger:hover {
+        background: #ef4444;
+        color: white;
+        transform: rotate(90deg);
+        border-color: #ef4444;
+    }
+
+    .modal-profile-header {
+        padding: 2.25rem 1.75rem 1.5rem;
+        background: linear-gradient(135deg, #0f172a 0%, #1e293b 100%);
+        position: relative;
         color: white;
     }
 
-    .permission-badge {
-        padding: 0.4rem 0.8rem;
-        border-radius: 8px;
-        font-weight: 700;
-        font-size: 0.75rem;
-        text-transform: uppercase;
-        background: #f1f5f9;
-        color: #64748b;
+    .header-content-flex {
+        display: flex;
+        align-items: center;
+        gap: 1.25rem;
+        position: relative;
+        z-index: 2;
     }
 
-    .permission-badge.admin-badge {
-        background: rgba(249, 115, 22, 0.1);
-        color: var(--primary);
+    .header-decorator {
+        position: absolute;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        background: radial-gradient(circle at top right, rgba(59, 130, 246, 0.1), transparent);
+        opacity: 0.6;
+    }
+
+    .modal-body-content {
+        padding: 1.75rem;
+        background: white;
+    }
+
+    .info-stack-modern {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+        gap: 1.25rem 1rem;
+    }
+
+    @media (max-width: 600px) {
+        .info-stack-modern {
+            grid-template-columns: 1fr;
+        }
+
+        .user-modal-modern {
+            border-radius: 0;
+            max-width: 100%;
+            height: 100%;
+        }
+    }
+
+    .info-block label {
+        display: block;
+        font-size: 0.55rem;
+        font-weight: 900;
+        color: #94a3b8;
+        text-transform: uppercase;
+        letter-spacing: 1.5px;
+        margin-bottom: 0.35rem;
+    }
+
+    .info-block .value {
+        font-size: 0.95rem;
+        font-weight: 800;
+        color: #0f172a;
+        letter-spacing: -0.2px;
+        line-height: 1.1;
+    }
+
+    .member-id-vault {
+        display: inline-flex;
+        align-items: center;
+        padding: 0.35rem 0.75rem;
+        background: #f1f5f9;
+        border-radius: 10px;
+        font-family: 'JetBrains Mono', monospace;
+        font-size: 0.85rem;
+        font-weight: 800;
+    }
+
+    .stats-compact-row {
+        display: grid;
+        grid-template-columns: repeat(3, 1fr);
+        gap: 0.5rem;
+        margin-top: 1.25rem;
+        position: relative;
+        z-index: 2;
+        padding: 1rem 0.5rem;
+        background: rgba(255, 255, 255, 0.04);
+        border-radius: 16px;
+        border: 1px solid rgba(255, 255, 255, 0.08);
+    }
+
+    .stats-micro-bar {
+        display: flex;
+        gap: 0.75rem;
+        margin-top: 1rem;
+        position: relative;
+        z-index: 2;
+    }
+
+    .stat-badge {
+        padding: 0.35rem 0.65rem;
+        background: rgba(255, 255, 255, 0.05);
+        border: 1px solid rgba(255, 255, 255, 0.1);
+        border-radius: 8px;
+        font-size: 0.65rem;
+        font-weight: 800;
+        color: #cbd5e1;
+    }
+
+    .stat-badge span {
+        color: white;
+        margin-right: 4px;
+    }
+
+    .stat-node {
+        text-align: center;
+    }
+
+    .stat-node .num {
+        font-size: 1.1rem;
+        font-weight: 950;
+        color: white;
+        display: block;
+        line-height: 1;
+        margin-bottom: 0.15rem;
+    }
+
+    .stat-node .tag {
+        font-size: 0.55rem;
+        font-weight: 900;
+        color: #94a3b8;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+    }
+
+    .modal-loading-card {
+        padding: 6rem 3rem;
+        text-align: center;
+        background: white;
+    }
+
+    @keyframes slideUpModal {
+        from {
+            transform: translateY(30px) scale(0.98);
+            opacity: 0;
+        }
+
+        to {
+            transform: translateY(0) scale(1);
+            opacity: 1;
+        }
     }
 </style>
-<div class="admin-wrapper" style="animation: fadeIn 0.8s ease; padding-bottom: 4rem;">
-    <!-- Page Header -->
-    <div
-        style="display: flex; justify-content: space-between; align-items: flex-end; margin-bottom: 3rem; padding: 0 1rem;">
-        <div>
-            <h1 style="font-size: 2.5rem; font-weight: 900; color: #1e293b; letter-spacing: -1.5px; margin: 0;">User
-                <span style="color: var(--primary);">Management</span>
-            </h1>
-            <p style="color: #64748b; font-weight: 500; margin-top: 5px;">Configure permissions and manage the recipe
-                community.</p>
-        </div>
-        <a href="{{ url_for('dashboard') }}" class="btn btn-outline"
-            style="background: white; border: 1px solid #e2e8f0; color: #475569; padding: 0.8rem 1.5rem; border-radius: 12px; font-weight: 700;">
-            <i class="fas fa-arrow-left" style="margin-right: 8px;"></i> Back to Dashboard
-        </a>
-    </div>
 
-    <!-- Stats Bar (Visual Only for now) -->
-    <div
-        style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 1.5rem; margin-bottom: 2.5rem; padding: 0 1rem;">
-        <div
-            style="background: white; padding: 1.5rem; border-radius: 20px; box-shadow: 0 4px 20px rgba(0,0,0,0.03); border: 1px solid rgba(0,0,0,0.02);">
-            <div
-                style="color: #64748b; font-size: 0.85rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px;">
-                Total Users</div>
-            <div style="font-size: 1.8rem; font-weight: 900; color: #1e293b; margin-top: 5px;">{{ users|length }}</div>
+<div class="admin-wrapper">
+    <!-- Main Header -->
+    <header class="directory-header">
+        <div style="display: flex; justify-content: space-between; align-items: flex-start;">
+            <div>
+                <h1 class="directory-title">User Directory</h1>
+                <p class="directory-subtitle">Monitor community activity, manage permissions, and maintain the culinary
+                    network security.</p>
+            </div>
+            <a href="{{ url_for('dashboard') }}" class="btn"
+                style="background: white; border: 1.5px solid #e2e8f0; color: #1e293b; padding: 0.8rem 1.75rem; border-radius: 16px; font-weight: 800; display: flex; align-items: center; gap: 10px; box-shadow: 0 4px 10px rgba(0,0,0,0.03);">
+                <i class="fas fa-arrow-left"></i> Dashboard
+            </a>
         </div>
-        <div
-            style="background: white; padding: 1.5rem; border-radius: 20px; box-shadow: 0 4px 20px rgba(0,0,0,0.03); border: 1px solid rgba(0,0,0,0.02);">
-            <div
-                style="color: var(--primary); font-size: 0.85rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px;">
-                Active Admins</div>
-            <div style="font-size: 1.8rem; font-weight: 900; color: #1e293b; margin-top: 5px;">{{
-                users|selectattr('role', 'equalto', 'admin')|list|length }}</div>
-        </div>
-    </div>
+    </header>
 
-    <!-- Users Table Card -->
-    <div
-        style="background: white; border-radius: 24px; box-shadow: 0 20px 40px rgba(0,0,0,0.04); border: 1px solid rgba(0,0,0,0.02); overflow: hidden;">
-        <table style="width: 100%; border-collapse: collapse;">
+    <!-- Detailed Stats Bar -->
+    <section class="stats-grid">
+        <div class="stat-premium-card">
+            <div class="stat-icon-box" style="background: #eff6ff; color: #2563eb;">
+                <i class="fas fa-users"></i>
+            </div>
+            <div class="stat-data">
+                <div class="label">Community Size</div>
+                <div class="value">{{ users|length }}</div>
+            </div>
+        </div>
+        <div class="stat-premium-card">
+            <div class="stat-icon-box" style="background: #fff7ed; color: #f97316;">
+                <i class="fas fa-shield-alt"></i>
+            </div>
+            <div class="stat-data">
+                <div class="label">System Admins</div>
+                <div class="value">{{ users|selectattr('role', 'equalto', 'admin')|list|length }}</div>
+            </div>
+        </div>
+        <div class="stat-premium-card">
+            <div class="stat-icon-box" style="background: #f0fdf4; color: #10b981;">
+                <i class="fas fa-user-check"></i>
+            </div>
+            <div class="stat-data">
+                <div class="label">Recent Joiners</div>
+                <div class="value">{{ users|length }}</div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Master Directory Table -->
+    <div class="table-container-glass">
+        <table class="directory-table">
             <thead>
-                <tr style="background: #f8fafc; text-align: left;">
-                    <th
-                        style="padding: 1.5rem; color: #475569; font-weight: 800; font-size: 0.85rem; text-transform: uppercase;">
-                        User Identity</th>
-                    <th
-                        style="padding: 1.5rem; color: #475569; font-weight: 800; font-size: 0.85rem; text-transform: uppercase;">
-                        Account Information</th>
-                    <th
-                        style="padding: 1.5rem; color: #475569; font-weight: 800; font-size: 0.85rem; text-transform: uppercase;">
-                        Permission Level</th>
-                    <th
-                        style="padding: 1.5rem; color: #475569; font-weight: 800; font-size: 0.85rem; text-transform: uppercase;">
-                        Registration</th>
-                    <th
-                        style="padding: 1.5rem; color: #475569; font-weight: 800; font-size: 0.85rem; text-transform: uppercase; text-align: right;">
-                        Administrative Control</th>
+                <tr>
+                    <th>Member Profile</th>
+                    <th>Email Address</th>
+                    <th>Clearance</th>
+                    <th>Acquisition Date</th>
+                    <th style="text-align: right;">Operations</th>
                 </tr>
             </thead>
             <tbody>
                 {% for user in users %}
-                <tr style="border-bottom: 1px solid #f1f5f9; transition: 0.2s;"
-                    onmouseover="this.style.background='#fffcf9'" onmouseout="this.style.background='transparent'">
-                    <td style="padding: 1.5rem;">
-                        <div style="display: flex; align-items: center; gap: 12px;">
-                            <div class="user-avatar {{ 'admin-avatar' if user.role == 'admin' else '' }}">
+                <tr>
+                    <td>
+                        <div class="user-info-flex">
+                            <div class="directory-avatar"
+                                style="background: {{ 'linear-gradient(135deg, #fbbf24, #f59e0b)' if user.role == 'admin' else '#f1f5f9' }}; color: {{ 'white' if user.role == 'admin' else '#475569' }};">
                                 {{ user.username[0]|upper }}
                             </div>
-                            <div>
-                                <div style="font-weight: 800; color: #1e293b;">{{ user.username }}</div>
-                                <div style="font-size: 0.85rem; color: #64748b;">{{ user.full_name or 'Profile
-                                    incomplete' }}</div>
+                            <div class="user-meta">
+                                <span class="name">{{ user.username }}</span>
+                                <span class="username">@{{ user.username|lower }}</span>
                             </div>
                         </div>
                     </td>
-                    <td style="padding: 1.5rem;">
-                        <div style="color: #475569; font-weight: 500; font-size: 0.95rem;">{{ user.email or 'No email
-                            provided' }}</div>
+                    <td>
+                        <span style="color: #475569; font-weight: 600; font-size: 0.95rem;">
+                            {{ user.email or '---' }}
+                        </span>
                     </td>
-                    <td style="padding: 1.5rem;">
-                        <span class="permission-badge {{ 'admin-badge' if user.role == 'admin' else '' }}">
+                    <td>
+                        <span class="role-pill {{ user.role }}">
+                            <i class="fas {{ 'fa-crown' if user.role == 'admin' else 'fa-user' }}"></i>
                             {{ user.role }}
                         </span>
                     </td>
-                    <td style="padding: 1.5rem;">
-                        <div style="color: #94a3b8; font-size: 0.85rem; display: flex; align-items: center; gap: 6px;">
-                            <i class="far fa-calendar-alt"></i>
-                            {{ user.created_at.strftime('%b %d, %Y') if user.created_at else 'Legacy User' }}
+                    <td>
+                        <div style="color: #64748b; font-size: 0.9rem; font-weight: 600;">
+                            {{ user.created_at.strftime('%d %b, %Y') if user.created_at else 'Active' }}
                         </div>
                     </td>
-                    <td style="padding: 1.5rem; text-align: right;">
-                        <div style="display: inline-flex; gap: 0.5rem;">
-                            <a href="{{ url_for('toggle_role', user_id=user.id) }}"
-                                style="padding: 0.6rem 1rem; border-radius: 10px; background: #fffbeb; color: #d97706; text-decoration: none; font-size: 0.85rem; font-weight: 700; border: 1px solid #fde68a;"
-                                onclick="return confirm('Change {{ user.username }}\'s role?')">
-                                <i class="fas fa-user-shield"></i> Promote/Demote
+                    <td>
+                        <div class="action-toolbar">
+                            <button class="tool-btn view" onclick="openUserDetails({{ user.id }})" title="Full Profile">
+                                <i class="fas fa-id-card"></i>
+                            </button>
+                            <button class="tool-btn role" onclick="openResetModal({{ user.id }}, '{{ user.username }}')"
+                                title="Reset Password"
+                                style="background: #f0fdf4; color: #16a34a; border-color: #dcfce7;">
+                                <i class="fas fa-key"></i>
+                            </button>
+                            <a href="{{ url_for('toggle_role', user_id=user.id) }}" class="tool-btn role"
+                                title="Modifier Role"
+                                onclick="return confirm('Toggle permissions for {{ user.username }}?')">
+                                <i class="fas fa-user-shield"></i>
                             </a>
                             {% if user.id != session['user_id'] %}
-                            <a href="{{ url_for('delete_user', user_id=user.id) }}"
-                                style="padding: 0.6rem 1rem; border-radius: 10px; background: #fef2f2; color: #dc2626; text-decoration: none; font-size: 0.85rem; font-weight: 700; border: 1px solid #fecaca;"
-                                onclick="return confirm('WARNING: Permanently delete {{ user.username }}?')">
-                                <i class="fas fa-trash-alt"></i>
+                            <a href="{{ url_for('delete_user', user_id=user.id) }}" class="tool-btn delete"
+                                title="Terminate Account"
+                                onclick="return confirm('PERMANENTLY remove {{ user.username }} from the network?')">
+                                <i class="fas fa-user-slash"></i>
                             </a>
                             {% endif %}
                         </div>
@@ -149,4 +579,199 @@
         </table>
     </div>
 </div>
+
+<!-- Reset Password Modal -->
+<div class="user-modal-overlay" id="resetModalOverlay" onclick="if(event.target===this) closeResetModal()">
+    <div class="user-modal-modern" style="max-width: 500px;">
+        <button class="modal-close-trigger" onclick="closeResetModal()" style="background: #f1f5f9; color: #64748b;">
+            <i class="fas fa-times"></i>
+        </button>
+
+        <div style="padding: 4rem 3rem 3rem;">
+            <div style="text-align: center; margin-bottom: 2.5rem;">
+                <div
+                    style="width: 72px; height: 72px; background: #ecfdf5; color: #059669; border-radius: 24px; display: flex; align-items: center; justify-content: center; font-size: 1.75rem; margin: 0 auto 1.5rem; box-shadow: 0 10px 25px rgba(5, 150, 105, 0.1);">
+                    <i class="fas fa-key"></i>
+                </div>
+                <h3 style="font-size: 1.8rem; font-weight: 950; color: #0f172a; margin-bottom: 0.5rem; letter-spacing: -1px;"
+                    id="resetNameHeader">Security Override</h3>
+                <p style="color: #64748b; font-size: 0.95rem; font-weight: 600;">Issue a new cryptographic credential
+                    for this user.</p>
+            </div>
+
+            <form id="resetForm" method="POST" action="">
+                <div style="margin-bottom: 2rem;">
+                    <label
+                        style="display:block; font-size: 0.725rem; font-weight: 900; color: #94a3b8; text-transform: uppercase; margin-bottom: 0.75rem; letter-spacing: 1.5px;">New
+                        Plain-Text Password</label>
+                    <input type="text" name="new_password" required minlength="6" placeholder="Enter secure phrase..."
+                        style="width: 100%; padding: 1.15rem 1.5rem; border-radius: 18px; border: 2.5px solid #f1f5f9; font-weight: 700; font-size: 1.1rem; transition: 0.3s; outline: none; box-shadow: 0 4px 10px rgba(0,0,0,0.02);"
+                        onfocus="this.style.borderColor='#6366f1'; this.style.background='#fdfeff';">
+                </div>
+
+                <div style="display: grid; grid-template-columns: 1fr; gap: 1rem;">
+                    <button type="submit"
+                        style="padding: 1.25rem; border-radius: 18px; border: none; background: #0f172a; color: white; font-weight: 900; font-size: 0.9rem; text-transform: uppercase; letter-spacing: 1px; cursor: pointer; transition: 0.3s; box-shadow: 0 10px 30px rgba(15, 23, 42, 0.2);"
+                        onmouseover="this.style.background='#000'; this.style.transform='translateY(-2px)'">Complete
+                        Password Reset</button>
+                    <button type="button" onclick="closeResetModal()"
+                        style="padding: 1rem; border-radius: 18px; border: none; background: transparent; color: #94a3b8; font-weight: 800; font-size: 0.8rem; text-transform: uppercase; letter-spacing: 1px; cursor: pointer;">Cancel
+                        Operation</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- Modal Overlay (Logic remains same, styles updated via new modern class) -->
+<div class="user-modal-overlay" id="userModalOverlay" onclick="if(event.target===this) closeUserModal()">
+    <div class="user-modal-modern" id="userModal">
+        <!-- Close button managed by JS injection for consistency -->
+        <div id="userModalContent">
+            <!-- Loaded via AJAX -->
+        </div>
+    </div>
+</div>
+
+<script>
+    // Logic is integrated into old functions but targeting new styles
+    function openUserDetails(userId) {
+        const overlay = document.getElementById('userModalOverlay');
+        const content = document.getElementById('userModalContent');
+        overlay.classList.add('active');
+        document.body.style.overflow = 'hidden';
+
+        content.innerHTML = `
+            <div class="modal-loading-card">
+                <div style="position: relative; width: 80px; height: 80px; margin: 0 auto 2.5rem;">
+                    <div style="position: absolute; top:0; left:0; right:0; bottom:0; border: 6px solid #f1f5f9; border-radius: 50%;"></div>
+                    <div style="position: absolute; top:0; left:0; right:0; bottom:0; border: 6px solid transparent; border-top-color: #6366f1; border-radius: 50%; animation: spin 0.8s linear infinite;"></div>
+                </div>
+                <h3 style="font-size: 1.25rem; font-weight: 950; color: #0f172a; margin-bottom: 0.5rem; letter-spacing: -0.5px;">Initializing Secure Access</h3>
+                <p style="font-weight: 700; color: #94a3b8; letter-spacing: 1.5px; text-transform: uppercase; font-size: 0.75rem;">Syncing with network vault...</p>
+            </div>
+        `;
+
+        fetch('/admin/user_details/' + userId)
+            .then(r => r.json())
+            .then(user => {
+                const isAdmin = user.role === 'admin';
+                const accentColor = isAdmin ? '#fbbf24' : '#6366f1';
+
+                content.innerHTML = `
+                    <div class="modal-profile-header">
+                        <div class="header-decorator"></div>
+                        <button class="modal-close-trigger" onclick="closeUserModal()">
+                            <i class="fas fa-times"></i>
+                        </button>
+
+                        <div class="header-content-flex">
+                            <div style="width: 54px; height: 54px; border-radius: 16px; background: white; border: 2.5px solid rgba(255,255,255,0.25); display: flex; align-items: center; justify-content: center; font-size: 1.5rem; font-weight: 950; position: relative; box-shadow: 0 8px 16px rgba(0,0,0,0.25); overflow: hidden; color: #1e293b; flex-shrink: 0;">
+                                ${user.profile_photo ? `<img src="${user.profile_photo.startsWith('http') ? user.profile_photo : '/static/uploads/profiles/' + user.profile_photo}" style="width:100%; height:100%; object-fit:cover;">` : user.username[0].toUpperCase()}
+                            </div>
+                            
+                            <div style="flex: 1; overflow: hidden;">
+                                <h2 style="font-size: 1.35rem; font-weight: 950; color: white; margin-bottom: 0.15rem; letter-spacing: -0.4px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">${user.username}</h2>
+                                <div style="display: inline-flex; align-items: center; gap: 4px; padding: 0.25rem 0.6rem; border-radius: 8px; background: ${isAdmin ? 'rgba(251, 191, 36, 0.2)' : 'rgba(99, 102, 241, 0.2)'}; color: ${accentColor}; font-size: 0.55rem; font-weight: 900; text-transform: uppercase; letter-spacing: 0.5px; border: 1px solid rgba(255,255,255,0.08);">
+                                    <i class="fas ${isAdmin ? 'fa-crown-open' : 'fa-certificate'}"></i> ${user.role}
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="stats-micro-bar">
+                            <div class="stat-badge"><span>${user.recipe_count}</span>Recipes</div>
+                            <div class="stat-badge"><span>${user.comment_count}</span>Comments</div>
+                            <div class="stat-badge"><span>${user.like_count}</span>Likes</div>
+                        </div>
+                    </div>
+
+                    <div class="modal-body-content">
+                        <div class="info-stack-modern">
+                            <div class="info-block">
+                                <label>Legal Name</label>
+                                <div class="value">${user.full_name || 'N/A'}</div>
+                            </div>
+                            <div class="info-block">
+                                <label>System Access ID</label>
+                                <div style="color: ${accentColor}; font-family: 'JetBrains Mono', monospace; font-size:0.75rem; font-weight: 900;">
+                                    #${user.id.toString().padStart(6, '0')}
+                                </div>
+                            </div>
+                            <div class="info-block" style="grid-column: 1 / -1;">
+                                <label>Verified Email</label>
+                                <div class="value" style="font-size:0.85rem; word-break: break-all;">${user.email || 'Private'}</div>
+                            </div>
+                        </div>
+
+                        <div style="margin-top: 1.5rem; background: #f8fafc; border: 1.5px solid #f1f5f9; border-radius: 18px; padding: 1.15rem;">
+                            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.85rem;">
+                                <h4 style="font-size: 0.65rem; font-weight: 950; color: #0f172a; text-transform: uppercase; margin:0; letter-spacing: 0.5px;">Security Access</h4>
+                                <button onclick="openResetModal(${user.id}, '${user.username}')" style="background: #0f172a; color: white; border: none; padding: 0.45rem 0.75rem; border-radius: 8px; font-size: 0.55rem; font-weight: 900; cursor: pointer; text-transform: uppercase;">Reset</button>
+                            </div>
+                            
+                            <div style="background: white; border: 1px solid #f1f5f9; border-radius: 10px; padding: 0.65rem; display: flex; align-items: center; gap: 8px;">
+                                <div id="pw-display" style="flex: 1; font-family: monospace; font-size: 0.7rem; color: #475569; overflow: hidden; text-overflow: ellipsis; font-weight: 700;">••••••••••••</div>
+                                <button onclick="togglePassword('${user.password.replace(/'/g, "\\'")}')" style="width:26px; height:26px; border:none; background:#f8fafc; border-radius:6px; cursor:pointer; color:#64748b;"><i class="fas fa-eye" id="pw-eye-icon" style="font-size: 0.7rem;"></i></button>
+                            </div>
+                        </div>
+
+                        <div style="margin-top: 1.25rem; text-align: center; color: #cbd5e1; font-size: 0.55rem; font-weight: 950; text-transform: uppercase; letter-spacing: 1px;">
+                            Member Since ${user.created_at}
+                        </div>
+                    </div>
+                `;
+            });
+    }
+
+    let passwordVisible = false;
+    function togglePassword(hash) {
+        const display = document.getElementById('pw-display');
+        const icon = document.getElementById('pw-eye-icon');
+        passwordVisible = !passwordVisible;
+        if (passwordVisible) {
+            display.textContent = hash;
+            icon.className = 'fas fa-eye-slash';
+        } else {
+            display.textContent = '••••••••••••••••';
+            icon.className = 'fas fa-eye';
+        }
+    }
+
+    function copyPassword(hash) {
+        navigator.clipboard.writeText(hash).then(() => {
+            alert('Hash copied to clipboard');
+        });
+    }
+
+    function closeUserModal() {
+        document.getElementById('userModalOverlay').classList.remove('active');
+        document.body.style.overflow = '';
+        passwordVisible = false;
+    }
+
+    function openResetModal(userId, username) {
+        const overlay = document.getElementById('resetModalOverlay');
+        const form = document.getElementById('resetForm');
+        const header = document.getElementById('resetNameHeader');
+
+        header.textContent = `Reset ${username}'s Password`;
+        form.action = `/admin/reset_password/${userId}`;
+        overlay.classList.add('active');
+        document.body.style.overflow = 'hidden';
+    }
+
+    function closeResetModal() {
+        document.getElementById('resetModalOverlay').classList.remove('active');
+        if (!document.getElementById('userModalOverlay').classList.contains('active')) {
+            document.body.style.overflow = '';
+        }
+    }
+
+    document.addEventListener('keydown', function (e) {
+        if (e.key === 'Escape') {
+            closeUserModal();
+            closeResetModal();
+        }
+    });
+</script>
 {% endblock %}

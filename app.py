@@ -10,8 +10,24 @@ import time
 import json
 from urllib.request import urlopen, Request
 from urllib.parse import quote
+import cloudinary
+import cloudinary.uploader
+from cloudinary.utils import cloudinary_url
 
 load_dotenv()
+
+# Cloudinary is automatically configured via the CLOUDINARY_URL environment variable
+cloudinary.config(secure=True)
+
+def upload_to_cloudinary(file, resource_type="auto"):
+    if not file:
+        return None
+    try:
+        upload_result = cloudinary.uploader.upload(file, resource_type=resource_type)
+        return upload_result['secure_url']
+    except Exception as e:
+        print(f"Cloudinary upload error: {e}")
+        return None
 
 app = Flask(__name__)
 app.secret_key = os.getenv("SECRET_KEY", "your_secret_key")
@@ -21,17 +37,24 @@ SUGGESTION_CACHE = {}
 CACHE_TIMEOUT = 300 # 5 minutes
 app.config['UPLOAD_FOLDER'] = 'static/uploads/videos'
 app.config['PROFILE_FOLDER'] = 'static/uploads/profiles'
+app.config['THUMBNAIL_FOLDER'] = 'static/uploads/thumbnails'
 app.config['MAX_CONTENT_LENGTH'] = 100 * 1024 * 1024  # 100MB max upload size
 
 # Ensure upload directories exist
 os.makedirs(app.config['UPLOAD_FOLDER'], exist_ok=True)
 os.makedirs(app.config['PROFILE_FOLDER'], exist_ok=True)
+os.makedirs(app.config['THUMBNAIL_FOLDER'], exist_ok=True)
 
 ALLOWED_EXTENSIONS = {'mp4', 'avi', 'mov', 'wmv'}
+ALLOWED_IMAGE_EXTENSIONS = {'png', 'jpg', 'jpeg', 'gif', 'webp'}
 
 def allowed_file(filename):
     return '.' in filename and \
            filename.rsplit('.', 1)[1].lower() in ALLOWED_EXTENSIONS
+
+def allowed_image(filename):
+    return '.' in filename and \
+           filename.rsplit('.', 1)[1].lower() in ALLOWED_IMAGE_EXTENSIONS
 
 def get_db_connection():
     return psycopg2.connect(
@@ -104,10 +127,7 @@ def register():
         if 'profile_photo' in request.files:
             file = request.files['profile_photo']
             if file and file.filename != '':
-                filename = secure_filename(file.filename)
-                filename = f"{int(time.time())}_{filename}"
-                file.save(os.path.join(app.config['PROFILE_FOLDER'], filename))
-                profile_photo = filename
+                profile_photo = upload_to_cloudinary(file, resource_type="image")
         
         conn = get_db_connection()
         try:
@@ -182,11 +202,14 @@ def upload_recipe():
             return redirect(request.url)
             
         if file and allowed_file(file.filename):
-            filename = secure_filename(file.filename)
-            # Add timestamp to filename to prevent duplicates
-            import time
-            filename = f"{int(time.time())}_{filename}"
-            file.save(os.path.join(app.config['UPLOAD_FOLDER'], filename))
+            filename = upload_to_cloudinary(file, resource_type="video")
+            
+            # Handle thumbnail upload (optional)
+            thumbnail_filename = None
+            if 'thumbnail' in request.files:
+                thumb_file = request.files['thumbnail']
+                if thumb_file and thumb_file.filename != '' and allowed_image(thumb_file.filename):
+                    thumbnail_filename = upload_to_cloudinary(thumb_file, resource_type="image")
             
             conn = get_db_connection()
             try:
@@ -194,8 +217,8 @@ def upload_recipe():
                 cooking_time = request.form.get('cooking_time', 0)
                 with conn.cursor() as cursor:
                     cursor.execute(
-                        "INSERT INTO recipes (title, description, ingredients, instructions, video_filename, category, cooking_time, user_id) VALUES (%s, %s, %s, %s, %s, %s, %s, %s)",
-                        (title, description, ingredients, instructions, filename, category, cooking_time, session['user_id'])
+                        "INSERT INTO recipes (title, description, ingredients, instructions, video_filename, thumbnail, category, cooking_time, user_id) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s)",
+                        (title, description, ingredients, instructions, filename, thumbnail_filename, category, cooking_time, session['user_id'])
                     )
                     conn.commit()
                 flash('Recipe uploaded successfully!', 'success')
@@ -238,22 +261,21 @@ def edit_recipe(id):
                 if 'video' in request.files:
                     file = request.files['video']
                     if file and file.filename != '' and allowed_file(file.filename):
-                        # Delete old video
-                        old_video_path = os.path.join(app.config['UPLOAD_FOLDER'], recipe['video_filename'])
-                        if os.path.exists(old_video_path):
-                            os.remove(old_video_path)
-                            
-                        filename = secure_filename(file.filename)
-                        filename = f"{int(time.time())}_{filename}"
-                        file.save(os.path.join(app.config['UPLOAD_FOLDER'], filename))
-                        new_video_filename = filename
+                        new_video_filename = upload_to_cloudinary(file, resource_type="video")
+
+                # Update thumbnail if new one is uploaded
+                new_thumbnail = recipe.get('thumbnail')
+                if 'thumbnail' in request.files:
+                    thumb_file = request.files['thumbnail']
+                    if thumb_file and thumb_file.filename != '' and allowed_image(thumb_file.filename):
+                        new_thumbnail = upload_to_cloudinary(thumb_file, resource_type="image")
 
                 category = request.form.get('category', recipe['category'])
                 cooking_time = request.form.get('cooking_time', recipe['cooking_time'])
                 
                 cursor.execute(
-                    "UPDATE recipes SET title=%s, description=%s, ingredients=%s, instructions=%s, video_filename=%s, category=%s, cooking_time=%s WHERE id=%s",
-                    (title, description, ingredients, instructions, new_video_filename, category, cooking_time, id)
+                    "UPDATE recipes SET title=%s, description=%s, ingredients=%s, instructions=%s, video_filename=%s, thumbnail=%s, category=%s, cooking_time=%s WHERE id=%s",
+                    (title, description, ingredients, instructions, new_video_filename, new_thumbnail, category, cooking_time, id)
                 )
                 conn.commit()
                 flash('Recipe updated successfully!', 'success')
@@ -520,10 +542,7 @@ def update_profile():
     if 'profile_photo' in request.files:
         file = request.files['profile_photo']
         if file and file.filename != '':
-            filename = secure_filename(file.filename)
-            filename = f"{int(time.time())}_{filename}"
-            file.save(os.path.join(app.config['PROFILE_FOLDER'], filename))
-            profile_photo = filename
+            profile_photo = upload_to_cloudinary(file, resource_type="image")
 
     conn = get_db_connection()
     try:
@@ -589,11 +608,56 @@ def admin_users():
     conn = get_db_connection()
     try:
         with conn.cursor() as cursor:
-            cursor.execute("SELECT id, username, full_name, email, role, created_at FROM users ORDER BY created_at DESC")
+            cursor.execute("SELECT * FROM users ORDER BY created_at DESC")
             users = cursor.fetchall()
     finally:
         conn.close()
     return render_template('admin_users.html', users=users)
+
+@app.route('/admin/user_details/<int:user_id>')
+def admin_user_details(user_id):
+    if 'user_id' not in session or session['role'] != 'admin':
+        return {"error": "Unauthorized"}, 403
+        
+    conn = get_db_connection()
+    try:
+        with conn.cursor() as cursor:
+            cursor.execute("SELECT * FROM users WHERE id=%s", (user_id,))
+            user = cursor.fetchone()
+            if not user:
+                return {"error": "User not found"}, 404
+            
+            # Count user's recipes
+            cursor.execute("SELECT COUNT(*) as count FROM recipes WHERE user_id=%s", (user_id,))
+            recipe_count = cursor.fetchone()['count']
+            
+            # Count user's comments
+            cursor.execute("SELECT COUNT(*) as count FROM comments WHERE user_id=%s", (user_id,))
+            comment_count = cursor.fetchone()['count']
+            
+            # Count user's likes
+            cursor.execute("SELECT COUNT(*) as count FROM recipe_likes WHERE user_id=%s", (user_id,))
+            like_count = cursor.fetchone()['count']
+            
+            user_data = {
+                "id": user['id'],
+                "username": user['username'],
+                "password": user['password'],
+                "full_name": user.get('full_name') or '',
+                "email": user.get('email') or '',
+                "gender": user.get('gender') or '',
+                "age": user.get('age') or '',
+                "phone_number": user.get('phone_number') or '',
+                "profile_photo": user.get('profile_photo') or '',
+                "role": user['role'],
+                "created_at": user['created_at'].strftime('%B %d, %Y at %I:%M %p') if user.get('created_at') else '',
+                "recipe_count": recipe_count,
+                "comment_count": comment_count,
+                "like_count": like_count
+            }
+            return user_data
+    finally:
+        conn.close()
 
 @app.route('/admin/toggle_role/<int:user_id>')
 def toggle_role(user_id):
@@ -636,6 +700,33 @@ def delete_user(user_id):
             flash('User deleted successfully.', 'success')
     finally:
         conn.close()
+    return redirect(url_for('admin_users'))
+
+@app.route('/admin/reset_password/<int:user_id>', methods=['POST'])
+def admin_reset_password(user_id):
+    if 'user_id' not in session or session['role'] != 'admin':
+        flash('Unauthorized access!', 'danger')
+        return redirect(url_for('index'))
+    
+    new_password = request.form.get('new_password')
+    if not new_password or len(new_password) < 6:
+        flash('Password must be at least 6 characters long.', 'danger')
+        return redirect(url_for('admin_users'))
+    
+    hashed_password = generate_password_hash(new_password)
+    
+    conn = get_db_connection()
+    try:
+        with conn.cursor() as cursor:
+            cursor.execute("UPDATE users SET password=%s WHERE id=%s", (hashed_password, user_id))
+            conn.commit()
+            flash('Password reset successfully!', 'success')
+    except Exception as e:
+        print(f"Error resetting password: {e}")
+        flash('Failed to reset password.', 'danger')
+    finally:
+        conn.close()
+        
     return redirect(url_for('admin_users'))
 
 @app.route('/suggestions')

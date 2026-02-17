@@ -3,8 +3,9 @@
 
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0, user-scalable=yes">
     <title>{% block title %}RecipeHub - Best Recipes{% endblock %}</title>
+    <meta name="description" content="RecipeHub - Discover, share and enjoy the best recipes from around the world.">
     <!-- Modern Pro Typography -->
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
@@ -12,11 +13,26 @@
 </head>
 
 <body>
+    <!-- Device Type Indicator Badge -->
+    <div id="device-badge" class="device-badge">
+        <i class="fas fa-desktop" id="device-icon"></i>
+        <span id="device-label">Desktop</span>
+    </div>
+
     <nav class="navbar">
         <a href="{{ url_for('index') }}" class="logo">
             <i class="fas fa-utensils-alt" style="color: var(--primary);"></i> Recipe<span
                 style="color: var(--text-main);">Hub</span>
         </a>
+
+        <!-- Hamburger Menu Button (visible on mobile/tablet) -->
+        <button class="hamburger-btn" id="hamburger-btn" aria-label="Toggle navigation menu"
+            onclick="toggleMobileMenu()">
+            <span class="hamburger-line"></span>
+            <span class="hamburger-line"></span>
+            <span class="hamburger-line"></span>
+        </button>
+
         <div class="search-container">
             <form action="{{ url_for('search') }}" method="GET" style="position: relative;">
                 <input type="text" name="q" id="search-input" placeholder="Search for your favorite recipes..."
@@ -26,38 +42,39 @@
                 </button>
                 <div id="search-suggestions" class="suggestions-dropdown"></div>
             </form>
-            <div class="trending-tags"
-                style="margin-top: 8px; font-size: 0.75rem; display: flex; gap: 10px; padding-left: 10px;">
+            <div class="trending-tags">
                 <span style="color: #94a3b8; font-weight: 700;">Trending:</span>
-                <a href="/?category=Breakfast"
-                    style="color: var(--primary); text-decoration: none; font-weight: 600;">Breakfast</a>
-                <a href="/?category=Lunch"
-                    style="color: var(--primary); text-decoration: none; font-weight: 600;">Lunch</a>
-                <a href="/?category=Dinner"
-                    style="color: var(--primary); text-decoration: none; font-weight: 600;">Dinner</a>
+                <a href="/?category=Breakfast">Breakfast</a>
+                <a href="/?category=Lunch">Lunch</a>
+                <a href="/?category=Dinner">Dinner</a>
             </div>
         </div>
-        <ul class="nav-links">
+
+        <!-- Mobile Nav Overlay -->
+        <div class="mobile-nav-overlay" id="mobile-nav-overlay" onclick="toggleMobileMenu()"></div>
+
+        <ul class="nav-links" id="nav-links">
             <li><a href="{{ url_for('index') }}"><i class="fas fa-house"></i> Home</a></li>
             {% if session.get('user_id') %}
             <li><a href="{{ url_for('dashboard') }}"><i class="fas fa-chart-line"></i> Dashboard</a></li>
             <li><a href="{{ url_for('upload_recipe') }}"><i class="fas fa-upload"></i> Upload</a></li>
             <li>
-                <a href="{{ url_for('profile') }}" style="padding: 0; display: flex; align-items: center;">
+                <a href="{{ url_for('profile') }}" class="nav-profile-link">
                     {% if session.get('profile_photo') %}
-                    <img src="{{ url_for('static', filename='uploads/profiles/' + session['profile_photo']) }}"
-                        alt="Profile"
-                        style="width: 35px; height: 35px; border-radius: 50%; object-fit: cover; border: 2px solid var(--primary);">
+                    <img src="{{ session['profile_photo'] if session['profile_photo'].startswith('http') else url_for('static', filename='uploads/profiles/' + session['profile_photo']) }}"
+                        alt="Profile" class="nav-profile-img">
                     {% else %}
                     <i class="fas fa-user-circle" style="font-size: 1.8rem;"></i>
                     {% endif %}
+                    <span class="mobile-nav-text">Profile</span>
                 </a>
             </li>
-            <li><a href="{{ url_for('logout') }}" class="btn btn-danger" style="padding: 0.5rem 1rem;"><i
-                        class="fas fa-sign-out-alt"></i></a></li>
+            <li><a href="{{ url_for('logout') }}" class="btn btn-danger nav-logout-btn"><i
+                        class="fas fa-sign-out-alt"></i> <span class="mobile-nav-text">Logout</span></a></li>
             {% else %}
-            <li><a href="{{ url_for('login') }}">Sign In</a></li>
-            <li><a href="{{ url_for('register') }}" class="btn btn-primary">Get Started</a></li>
+            <li><a href="{{ url_for('login') }}"><i class="fas fa-sign-in-alt"></i> Sign In</a></li>
+            <li><a href="{{ url_for('register') }}" class="btn btn-primary"><i class="fas fa-rocket"></i> Get
+                    Started</a></li>
             {% endif %}
         </ul>
     </nav>
@@ -79,47 +96,119 @@
         </div>
 
         <script>
+            // ===== Device Detection & Badge =====
+            function detectDevice() {
+                const badge = document.getElementById('device-badge');
+                const icon = document.getElementById('device-icon');
+                const label = document.getElementById('device-label');
+                const width = window.innerWidth;
+
+                if (width <= 480) {
+                    icon.className = 'fas fa-mobile-alt';
+                    label.textContent = 'Mobile';
+                    badge.className = 'device-badge device-mobile';
+                } else if (width <= 1024) {
+                    icon.className = 'fas fa-tablet-alt';
+                    label.textContent = 'Tablet';
+                    badge.className = 'device-badge device-tablet';
+                } else {
+                    icon.className = 'fas fa-desktop';
+                    label.textContent = 'Desktop';
+                    badge.className = 'device-badge device-desktop';
+                }
+
+                // Auto-hide badge after 4 seconds
+                badge.style.opacity = '1';
+                badge.style.transform = 'translateX(0)';
+                clearTimeout(window._badgeTimeout);
+                window._badgeTimeout = setTimeout(() => {
+                    badge.style.opacity = '0.3';
+                }, 4000);
+            }
+
+            // Re-detect on resize
+            window.addEventListener('resize', detectDevice);
+            // Detect on load
+            document.addEventListener('DOMContentLoaded', detectDevice);
+
+            // Show badge on hover
+            document.getElementById('device-badge').addEventListener('mouseenter', function () {
+                this.style.opacity = '1';
+            });
+            document.getElementById('device-badge').addEventListener('mouseleave', function () {
+                this.style.opacity = '0.3';
+            });
+
+            // ===== Mobile Menu Toggle =====
+            function toggleMobileMenu() {
+                const navLinks = document.getElementById('nav-links');
+                const hamburger = document.getElementById('hamburger-btn');
+                const overlay = document.getElementById('mobile-nav-overlay');
+
+                navLinks.classList.toggle('mobile-open');
+                hamburger.classList.toggle('active');
+                overlay.classList.toggle('active');
+
+                if (navLinks.classList.contains('mobile-open')) {
+                    document.body.style.overflow = 'hidden';
+                } else {
+                    document.body.style.overflow = 'auto';
+                }
+            }
+
+            // Close menu on nav link click (mobile)
+            document.addEventListener('DOMContentLoaded', () => {
+                document.querySelectorAll('.nav-links a').forEach(link => {
+                    link.addEventListener('click', () => {
+                        if (window.innerWidth <= 1024) {
+                            toggleMobileMenu();
+                        }
+                    });
+                });
+            });
+
+            // ===== Toast Notifications =====
             function showToast(message, type = 'success') {
                 const container = document.getElementById('toast-container');
                 const toast = document.createElement('div');
 
-                // Icon selection
                 const icon = type === 'success' ? 'fa-check-circle' :
                     type === 'danger' ? 'fa-exclamation-triangle' :
                         type === 'info' ? 'fa-info-circle' : 'fa-bell';
 
+                toast.className = 'toast-notification';
                 toast.style.cssText = `
-                background: white;
-                color: #1e293b;
-                padding: 1rem 1.5rem;
-                border-radius: 16px;
-                box-shadow: 0 10px 25px rgba(0,0,0,0.1);
-                display: flex;
-                align-items: center;
-                gap: 0.75rem;
-                min-width: 300px;
-                border-left: 5px solid ${type === 'danger' ? '#ef4444' : 'var(--primary)'};
-                transform: translateX(120%);
-                transition: transform 0.5s cubic-bezier(0.68, -0.55, 0.265, 1.55), opacity 0.5s;
-                opacity: 0;
-                pointer-events: auto;
-                font-weight: 600;
-            `;
+                    background: white;
+                    color: #1e293b;
+                    padding: 1rem 1.5rem;
+                    border-radius: 16px;
+                    box-shadow: 0 10px 25px rgba(0,0,0,0.1);
+                    display: flex;
+                    align-items: center;
+                    gap: 0.75rem;
+                    min-width: 280px;
+                    max-width: 90vw;
+                    border-left: 5px solid ${type === 'danger' ? '#ef4444' : 'var(--primary)'};
+                    transform: translateX(120%);
+                    transition: transform 0.5s cubic-bezier(0.68, -0.55, 0.265, 1.55), opacity 0.5s;
+                    opacity: 0;
+                    pointer-events: auto;
+                    font-weight: 600;
+                    font-size: 0.9rem;
+                `;
 
                 toast.innerHTML = `
-                <i class="fas ${icon}" style="color: ${type === 'danger' ? '#ef4444' : 'var(--primary)'}; font-size: 1.25rem;"></i>
-                <span>${message}</span>
-            `;
+                    <i class="fas ${icon}" style="color: ${type === 'danger' ? '#ef4444' : 'var(--primary)'}; font-size: 1.25rem;"></i>
+                    <span>${message}</span>
+                `;
 
                 container.appendChild(toast);
 
-                // Trigger animation
                 setTimeout(() => {
                     toast.style.transform = 'translateX(0)';
                     toast.style.opacity = '1';
                 }, 100);
 
-                // Auto hide
                 setTimeout(() => {
                     toast.style.transform = 'translateX(120%)';
                     toast.style.opacity = '0';
@@ -129,6 +218,8 @@
 
             // Handle Flask Flash Messages
             window.onload = () => {
+                detectDevice();
+
                 const flashData = document.querySelectorAll('#flash-messages-data .flash-message');
                 flashData.forEach(msg => {
                     showToast(msg.dataset.message, msg.dataset.category);
@@ -160,7 +251,6 @@
                                         .join('');
                                     suggestionsBox.style.display = 'block';
 
-                                    // Handle selection
                                     suggestionsBox.querySelectorAll('.suggestion-item').forEach(item => {
                                         item.addEventListener('click', () => {
                                             searchInput.value = item.textContent.trim();
@@ -174,10 +264,9 @@
                             } catch (err) {
                                 console.error('Fetch error:', err);
                             }
-                        }, 200); // 200ms debounce for high performance
+                        }, 200);
                     });
 
-                    // Close on outside click
                     document.addEventListener('click', (e) => {
                         if (!searchInput.contains(e.target) && !suggestionsBox.contains(e.target)) {
                             suggestionsBox.style.display = 'none';

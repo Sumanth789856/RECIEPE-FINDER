@@ -98,6 +98,63 @@
                         style="border-radius: 12px; padding: 0.9rem 1.2rem; transition: 0.3s;">
                 </div>
 
+                <!-- CURRENT THUMBNAIL / UPDATE -->
+                <div class="form-group" style="margin-bottom: 2rem;">
+                    <label for="thumbnail"
+                        style="display: block; font-weight: 700; color: #334155; margin-bottom: 1rem; font-size: 0.95rem;">
+                        <i class="fas fa-image" style="color: var(--primary); margin-right: 8px;"></i> Recipe Thumbnail
+                        <span style="color: #94a3b8; font-weight: 500;">(Optional)</span>
+                    </label>
+
+                    {% if recipe.thumbnail %}
+                    <!-- Show current thumbnail -->
+                    <div style="margin-bottom: 1rem; text-align: center;">
+                        <p style="font-size: 0.8rem; color: #64748b; margin-bottom: 0.5rem; font-weight: 600;">Current
+                            Thumbnail:</p>
+                        <img src="{{ recipe.thumbnail if recipe.thumbnail.startswith('http') else url_for('static', filename='uploads/thumbnails/' + recipe.thumbnail) }}"
+                            alt="Current thumbnail"
+                            style="max-height: 180px; max-width: 100%; border-radius: 16px; box-shadow: 0 8px 25px rgba(0,0,0,0.1); object-fit: cover;"
+                            id="current-thumb-img">
+                    </div>
+                    {% endif %}
+
+                    <div id="thumbnail-drop-zone"
+                        style="border: 2px dashed #e2e8f0; padding: 2rem; text-align: center; border-radius: 20px; cursor: pointer; transition: 0.3s; background: #f8fafc; position: relative;"
+                        onclick="document.getElementById('thumbnail').click()"
+                        onmouseover="this.style.borderColor='var(--accent)'; this.style.background='rgba(16, 185, 129, 0.02)'"
+                        onmouseout="this.style.borderColor='#e2e8f0'; this.style.background='#f8fafc'">
+
+                        <!-- Default state (no preview) -->
+                        <div id="thumb-placeholder" style="pointer-events: none;">
+                            <div
+                                style="width: 50px; height: 50px; background: white; border-radius: 50%; display: flex; align-items: center; justify-content: center; margin: 0 auto 0.75rem; box-shadow: 0 5px 15px rgba(0,0,0,0.05); color: var(--accent); font-size: 1.2rem;">
+                                <i class="fas fa-sync-alt"></i>
+                            </div>
+                            <p style="font-weight: 700; color: #1e293b; margin-bottom: 5px;">
+                                {{ 'Change thumbnail' if recipe.thumbnail else 'Add a cover photo' }}
+                            </p>
+                            <p style="color: #64748b; font-size: 0.8rem;">
+                                {{ 'Leave blank to keep current' if recipe.thumbnail else 'PNG, JPG, WebP (recommended
+                                16:9)' }}
+                            </p>
+                        </div>
+
+                        <!-- Preview state (new upload) -->
+                        <div id="thumb-preview-wrapper" style="display: none; position: relative;">
+                            <img id="thumb-preview" src="" alt="New Thumbnail Preview"
+                                style="max-height: 180px; max-width: 100%; border-radius: 14px; box-shadow: 0 8px 25px rgba(0,0,0,0.1); object-fit: cover;">
+                            <div
+                                style="margin-top: 0.75rem; display: flex; align-items: center; justify-content: center; gap: 8px; color: #059669; font-weight: 700; font-size: 0.85rem;">
+                                <i class="fas fa-check-circle"></i>
+                                <span id="thumb-file-name"></span>
+                            </div>
+                        </div>
+
+                        <input type="file" id="thumbnail" name="thumbnail" accept="image/*" style="display: none;"
+                            onchange="updateThumbnailPreview(this)">
+                    </div>
+                </div>
+
                 <div class="form-group" style="margin-bottom: 2rem;">
                     <label
                         style="display: block; font-weight: 700; color: #334155; margin-bottom: 1rem; font-size: 0.95rem;">
@@ -107,7 +164,8 @@
                     <div
                         style="border-radius: 20px; overflow: hidden; background: #000; box-shadow: 0 10px 20px rgba(0,0,0,0.1);">
                         <video width="100%" style="display: block; max-height: 250px;" controls>
-                            <source src="{{ url_for('static', filename='uploads/videos/' + recipe.video_filename) }}"
+                            <source
+                                src="{{ recipe.video_filename if recipe.video_filename.startswith('http') else url_for('static', filename='uploads/videos/' + recipe.video_filename) }}"
                                 type="video/mp4">
                         </video>
                     </div>
@@ -159,6 +217,26 @@
         if (input.files && input.files.length > 0) {
             fileInfo.style.display = 'flex';
             fileNameDisp.textContent = input.files[0].name;
+        }
+    }
+
+    function updateThumbnailPreview(input) {
+        if (input.files && input.files.length > 0) {
+            const file = input.files[0];
+            const reader = new FileReader();
+            reader.onload = function (e) {
+                document.getElementById('thumb-preview').src = e.target.result;
+                document.getElementById('thumb-placeholder').style.display = 'none';
+                document.getElementById('thumb-preview-wrapper').style.display = 'block';
+                document.getElementById('thumb-file-name').textContent = file.name;
+
+                // Hide old thumbnail if visible
+                const currentImg = document.getElementById('current-thumb-img');
+                if (currentImg) {
+                    currentImg.closest('div[style*="margin-bottom"]').style.display = 'none';
+                }
+            };
+            reader.readAsDataURL(file);
         }
     }
 </script>

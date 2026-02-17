@@ -39,6 +39,7 @@ def setup_database():
             ingredients TEXT,
             instructions TEXT,
             video_filename VARCHAR(255),
+            thumbnail VARCHAR(255),
             category VARCHAR(50),
             cooking_time INT DEFAULT 0,
             views INT DEFAULT 0,
@@ -47,6 +48,13 @@ def setup_database():
         )
         """)
         print("Recipes table checked/created.")
+
+        # Add thumbnail column if it doesn't exist (migration for existing databases)
+        try:
+            cursor.execute("ALTER TABLE recipes ADD COLUMN IF NOT EXISTS thumbnail VARCHAR(255)")
+            print("Thumbnail column ensured.")
+        except Exception:
+            pass  # Column already exists
 
         # Create recipe_likes table
         cursor.execute("""

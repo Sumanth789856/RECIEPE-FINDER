@@ -265,11 +265,16 @@
                             <div style="display: flex; gap: 1.2rem; align-items: center;">
                                 <div
                                     style="width: 100px; height: 60px; border-radius: 12px; overflow: hidden; background: #000; box-shadow: 0 5px 15px rgba(0,0,0,0.15);">
+                                    {% if recipe.thumbnail %}
+                                    <img src="{{ recipe.thumbnail if recipe.thumbnail.startswith('http') else url_for('static', filename='uploads/thumbnails/' + recipe.thumbnail) }}"
+                                        style="width: 100%; height: 100%; object-fit: cover;" alt="{{ recipe.title }}">
+                                    {% else %}
                                     <video style="width: 100%; height: 100%; object-fit: cover;">
                                         <source
-                                            src="{{ url_for('static', filename='uploads/videos/' + recipe.video_filename) }}"
+                                            src="{{ recipe.video_filename if recipe.video_filename.startswith('http') else url_for('static', filename='uploads/videos/' + recipe.video_filename) }}"
                                             type="video/mp4">
                                     </video>
+                                    {% endif %}
                                 </div>
                                 <div>
                                     <div

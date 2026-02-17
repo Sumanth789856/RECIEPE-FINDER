@@ -69,11 +69,32 @@
     {% for recipe in recipes %}
     <div class="card">
         <div class="video-container" style="border-radius: 20px 20px 0 0; overflow: hidden; position: relative;">
-            <video preload="metadata" style="width: 100%; border: none; cursor: pointer;"
-                data-recipe-id="{{ recipe.id }}" onclick="togglePlay(this, this.getAttribute('data-recipe-id'))">
-                <source src="{{ url_for('static', filename='uploads/videos/' + recipe.video_filename) }}"
+            {% if recipe.thumbnail %}
+            <!-- Thumbnail Cover Image -->
+            <div class="thumbnail-cover" style="position: relative; cursor: pointer;" data-recipe-id="{{ recipe.id }}"
+                onclick="const vid = this.nextElementSibling; this.style.display='none'; vid.style.display='block'; vid.play(); vid.controls = true; fetch(`/view/{{ recipe.id }}`, { method: 'POST' });">
+                <img src="{{ recipe.thumbnail if recipe.thumbnail.startswith('http') else url_for('static', filename='uploads/thumbnails/' + recipe.thumbnail) }}"
+                    alt="{{ recipe.title }}" style="width: 100%; height: 220px; object-fit: cover; display: block;">
+                <div
+                    style="position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); width: 56px; height: 56px; background: rgba(0,0,0,0.55); border-radius: 50%; display: flex; align-items: center; justify-content: center; backdrop-filter: blur(4px); transition: 0.3s;">
+                    <i class="fas fa-play" style="color: white; font-size: 1.3rem; margin-left: 3px;"></i>
+                </div>
+            </div>
+            <video preload="none" style="width: 100%; border: none; display: none;" data-recipe-id="{{ recipe.id }}"
+                onclick="togglePlay(this, '{{ recipe.id }}')">
+                <source
+                    src="{{ recipe.video_filename if recipe.video_filename.startswith('http') else url_for('static', filename='uploads/videos/' + recipe.video_filename) }}"
                     type="video/mp4">
             </video>
+            {% else %}
+            <!-- Video Preview (no thumbnail) -->
+            <video preload="metadata" style="width: 100%; border: none; cursor: pointer;"
+                data-recipe-id="{{ recipe.id }}" onclick="togglePlay(this, this.getAttribute('data-recipe-id'))">
+                <source
+                    src="{{ recipe.video_filename if recipe.video_filename.startswith('http') else url_for('static', filename='uploads/videos/' + recipe.video_filename) }}"
+                    type="video/mp4">
+            </video>
+            {% endif %}
             <div class="video-overlay" style="position: absolute; top: 1rem; right: 1rem; pointer-events: none;">
                 <span class="view-badge"
                     style="background: rgba(0,0,0,0.6); color: white; padding: 0.3rem 0.6rem; border-radius: 8px; font-size: 0.75rem; backdrop-filter: blur(4px);">
