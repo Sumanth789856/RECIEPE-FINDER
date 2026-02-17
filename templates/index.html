@@ -68,48 +68,49 @@
 <div class="recipe-grid">
     {% for recipe in recipes %}
     <div class="card">
-        <div class="video-container" style="border-radius: 20px 20px 0 0; overflow: hidden; position: relative;">
+        <div class="video-container skeleton" style="border-radius: 20px 20px 0 0;">
             {% if recipe.thumbnail %}
-            <!-- Thumbnail Cover Image -->
-            <div class="thumbnail-cover" style="position: relative; cursor: pointer;" data-recipe-id="{{ recipe.id }}"
+            <div class="thumbnail-cover" data-recipe-id="{{ recipe.id }}"
                 onclick="const vid = this.nextElementSibling; this.style.display='none'; vid.style.display='block'; vid.play(); vid.controls = true; fetch(`/view/{{ recipe.id }}`, { method: 'POST' });">
                 <img src="{{ recipe.thumbnail if recipe.thumbnail.startswith('http') else url_for('static', filename='uploads/thumbnails/' + recipe.thumbnail) }}"
-                    alt="{{ recipe.title }}" style="width: 100%; height: 220px; object-fit: cover; display: block;">
-                <div
-                    style="position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); width: 56px; height: 56px; background: rgba(0,0,0,0.55); border-radius: 50%; display: flex; align-items: center; justify-content: center; backdrop-filter: blur(4px); transition: 0.3s;">
-                    <i class="fas fa-play" style="color: white; font-size: 1.3rem; margin-left: 3px;"></i>
+                    alt="{{ recipe.title }}"
+                    onerror="this.src='https://images.unsplash.com/photo-1495195129352-aec325b55b75?q=80&w=2070&auto=format&fit=crop'; this.closest('.thumbnail-cover').style.background='#f3f4f6';">
+                <div class="play-trigger">
+                    <i class="fas fa-play"></i>
                 </div>
             </div>
-            <video preload="none" style="width: 100%; border: none; display: none;" data-recipe-id="{{ recipe.id }}"
-                onclick="togglePlay(this, '{{ recipe.id }}')">
+            <video preload="none" style="width: 100%; height: 100%; border: none; display: none;"
+                data-recipe-id="{{ recipe.id }}" onclick="togglePlay(this, '{{ recipe.id }}')">
                 <source
                     src="{{ recipe.video_filename if recipe.video_filename.startswith('http') else url_for('static', filename='uploads/videos/' + recipe.video_filename) }}"
                     type="video/mp4">
             </video>
             {% else %}
-            <!-- Video Preview (no thumbnail) -->
-            <video preload="metadata" style="width: 100%; border: none; cursor: pointer;"
+            <video preload="metadata" style="width: 100%; height: 100%; border: none; cursor: pointer;"
                 data-recipe-id="{{ recipe.id }}" onclick="togglePlay(this, this.getAttribute('data-recipe-id'))">
                 <source
                     src="{{ recipe.video_filename if recipe.video_filename.startswith('http') else url_for('static', filename='uploads/videos/' + recipe.video_filename) }}"
                     type="video/mp4">
             </video>
+            <div class="play-trigger" style="pointer-events: none;">
+                <i class="fas fa-play"></i>
+            </div>
             {% endif %}
-            <div class="video-overlay" style="position: absolute; top: 1rem; right: 1rem; pointer-events: none;">
+
+            <div class="video-overlay"
+                style="position: absolute; top: 1rem; right: 1rem; pointer-events: none; z-index: 3;">
                 <span class="view-badge"
-                    style="background: rgba(0,0,0,0.6); color: white; padding: 0.3rem 0.6rem; border-radius: 8px; font-size: 0.75rem; backdrop-filter: blur(4px);">
-                    <i class="fas fa-eye"></i> {{ recipe.views }} Views
+                    style="background: rgba(15, 23, 42, 0.7); color: white; padding: 0.4rem 0.8rem; border-radius: 12px; font-size: 0.725rem; font-weight: 800; backdrop-filter: blur(8px); border: 1px solid rgba(255,255,255,0.1);">
+                    <i class="fas fa-eye" style="margin-right: 4px;"></i> {{ recipe.views }}
                 </span>
             </div>
         </div>
-        <div class="card-body" style="padding: 1.5rem;">
-            <div
-                style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 0.75rem;">
-                <h3 class="card-title" style="margin: 0; font-size: 1.25rem;">{{ recipe.title }}</h3>
-                <span class="badge"
-                    style="background: rgba(249, 115, 22, 0.1); color: var(--primary); border: none; font-weight: 700;">{{
-                    recipe.category or 'Recipe' }}</span>
+        <div class="card-body">
+            <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 1rem;">
+                <h3 class="card-title">{{ recipe.title }}</h3>
+                <span class="badge">{{ recipe.category or 'Recipe' }}</span>
             </div>
+
             {% if recipe.description %}
             <div class="recipe-card-description" style="cursor: pointer;"
                 onclick="viewFullRecipe(this.closest('.card'))">
@@ -117,10 +118,9 @@
             </div>
             {% endif %}
 
-            <p class="card-text" style="color: #52525b; line-height: 1.6; font-weight: 500;">
-                <i class="fas fa-quote-left" style="color: var(--primary); opacity: 0.3; margin-right: 0.5rem;"></i>
-                {{ (recipe.instructions or "")|truncate(120) }}
-            </p>
+            <div class="card-quote">
+                {{ (recipe.instructions or "Crafted with passion and precision by our community chef.")|truncate(80) }}
+            </div>
 
             <!-- Hidden Data for Modal -->
             <div class="recipe-data" style="display: none;" data-id="{{ recipe.id }}" data-title="{{ recipe.title }}"
@@ -128,17 +128,18 @@
                 data-instructions="{{ recipe.instructions or '' }}">
             </div>
 
-            <div style="display: flex; gap: 0.5rem; margin-top: 1rem;">
-                <button class="btn btn-primary" style="flex: 1; padding: 0.8rem; font-size: 0.9rem;"
+            <div style="display: flex; gap: 0.75rem; margin-top: auto;">
+                <button class="btn btn-primary" style="flex: 1; padding: 1rem; font-weight: 800; letter-spacing: 0.5px;"
                     onclick="viewFullRecipe(this.closest('.card'))">
                     <i class="fas fa-utensils"></i> Open Recipe
                 </button>
                 <button class="btn btn-outline like-btn {% if recipe.user_liked %}active{% endif %}"
-                    style="width: 45px; border: 1px solid #e2e8f0; color: #64748b;" data-recipe-id="{{ recipe.id }}"
-                    onclick="toggleLike(this.getAttribute('data-recipe-id'), this)">
-                    <i class="{% if recipe.user_liked %}fas{% else %}far{% endif %} fa-heart"></i>
+                    style="width: 50px; height: 50px; background: #f8fafc; border: 1px solid #f1f5f9; border-radius: 16px;"
+                    data-recipe-id="{{ recipe.id }}" onclick="toggleLike(this.getAttribute('data-recipe-id'), this)">
+                    <i class="{% if recipe.user_liked %}fas liked{% else %}far{% endif %} fa-heart"></i>
                 </button>
-                <button class="btn btn-outline" style="width: 45px; border: 1px solid #e2e8f0; color: #64748b;"
+                <button class="btn btn-outline"
+                    style="width: 50px; height: 50px; background: #f8fafc; border: 1px solid #f1f5f9; color: #64748b; border-radius: 16px;"
                     data-title="{{ recipe.title }}" data-recipe-id="{{ recipe.id }}"
                     onclick="shareRecipe(this.getAttribute('data-title'), this.getAttribute('data-recipe-id'))">
                     <i class="fas fa-share-alt"></i>
@@ -146,26 +147,30 @@
             </div>
 
             <div
-                style="margin-top: 0.5rem; font-size: 0.8rem; color: #64748b; font-weight: 600; display: flex; gap: 1rem;">
-                <span><i class="fas fa-heart" style="color: #ef4444;"></i> <span class="like-counter">{{
-                        recipe.like_count or 0 }}</span> Likes</span>
-                <span><i class="fas fa-clock"></i> {{ recipe.cooking_time or 0 }} mins</span>
-                <span><i class="fas fa-video"></i> Local</span>
+                style="margin-top: 1.25rem; font-size: 0.75rem; color: #94a3b8; font-weight: 700; display: flex; gap: 1.25rem; border-top: 1px solid #f1f5f9; padding-top: 1.25rem;">
+                <span><i class="fas fa-heart" style="color: #ef4444; margin-right: 4px;"></i> <span
+                        class="like-counter">{{ recipe.like_count or 0 }}</span> Likes</span>
+                <span><i class="fas fa-clock" style="margin-right: 4px;"></i> {{ recipe.cooking_time or 0 }} mins</span>
+                <span><i class="fas fa-globe" style="margin-right: 4px;"></i> Global</span>
             </div>
 
-            <div
-                style="display: flex; justify-content: space-between; align-items: center; border-top: 1px solid rgba(0,0,0,0.05); padding-top: 1.25rem; margin-top: 1.5rem;">
-                <div style="display: flex; align-items: center; gap: 0.5rem;">
-                    <div
-                        style="width: 32px; height: 32px; background: var(--primary); border-radius: 50%; display: flex; align-items: center; justify-content: center; color: white; font-size: 0.8rem; font-weight: 800;">
-                        {{ recipe.username[0]|upper }}
-                    </div>
-                    <span style="font-weight: 600; font-size: 0.9rem; color: #3f3f46;">{{ recipe.username }}</span>
+            <div class="author-plate" style="margin-top: 1.5rem;">
+                <div
+                    style="width: 42px; height: 42px; background: linear-gradient(135deg, var(--text-main), #334155); border-radius: 14px; display: flex; align-items: center; justify-content: center; color: white; font-size: 1rem; font-weight: 950; box-shadow: 0 4px 12px rgba(0,0,0,0.15);">
+                    {{ recipe.username[0]|upper }}
                 </div>
-                <span style="font-size: 0.85rem; color: #a1a1aa; font-weight: 500;">
-                    <i class="far fa-calendar-alt" style="margin-right: 0.3rem;"></i>
-                    {{ recipe.created_at.strftime('%b %d') if recipe.created_at else '' }}
-                </span>
+                <div style="flex: 1;">
+                    <div style="font-weight: 800; font-size: 0.9rem; color: var(--text-main); line-height: 1.2;">{{
+                        recipe.username }}</div>
+                    <div style="font-size: 0.725rem; color: var(--text-muted); font-weight: 600;">Culinary Architect
+                    </div>
+                </div>
+                <div style="text-align: right;">
+                    <div
+                        style="font-size: 0.775rem; color: var(--text-muted); font-weight: 800; text-transform: uppercase; letter-spacing: 0.5px;">
+                        {{ recipe.created_at.strftime('%b %d') if recipe.created_at else 'Today' }}
+                    </div>
+                </div>
             </div>
         </div>
     </div>
