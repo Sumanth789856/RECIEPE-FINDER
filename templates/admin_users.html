@@ -1,56 +1,144 @@
 {% extends 'base.html' %}
 
-{% block title %}Manage Users - Admin{% endblock %}
+{% block title %}Manage Users - Admin Console{% endblock %}
 
 {% block content %}
-<div class="admin-container">
-    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 2rem;">
-        <h1><i class="fas fa-users-cog"></i> User Management</h1>
-        <a href="{{ url_for('dashboard') }}" class="btn btn-primary"><i class="fas fa-arrow-left"></i> Back to
-            Dashboard</a>
+<style>
+    .user-avatar {
+        width: 40px;
+        height: 40px;
+        border-radius: 12px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-weight: 800;
+        background: #f1f5f9;
+        color: #64748b;
+    }
+
+    .user-avatar.admin-avatar {
+        background: linear-gradient(135deg, #fbbf24, #f97316);
+        color: white;
+    }
+
+    .permission-badge {
+        padding: 0.4rem 0.8rem;
+        border-radius: 8px;
+        font-weight: 700;
+        font-size: 0.75rem;
+        text-transform: uppercase;
+        background: #f1f5f9;
+        color: #64748b;
+    }
+
+    .permission-badge.admin-badge {
+        background: rgba(249, 115, 22, 0.1);
+        color: var(--primary);
+    }
+</style>
+<div class="admin-wrapper" style="animation: fadeIn 0.8s ease; padding-bottom: 4rem;">
+    <!-- Page Header -->
+    <div
+        style="display: flex; justify-content: space-between; align-items: flex-end; margin-bottom: 3rem; padding: 0 1rem;">
+        <div>
+            <h1 style="font-size: 2.5rem; font-weight: 900; color: #1e293b; letter-spacing: -1.5px; margin: 0;">User
+                <span style="color: var(--primary);">Management</span>
+            </h1>
+            <p style="color: #64748b; font-weight: 500; margin-top: 5px;">Configure permissions and manage the recipe
+                community.</p>
+        </div>
+        <a href="{{ url_for('dashboard') }}" class="btn btn-outline"
+            style="background: white; border: 1px solid #e2e8f0; color: #475569; padding: 0.8rem 1.5rem; border-radius: 12px; font-weight: 700;">
+            <i class="fas fa-arrow-left" style="margin-right: 8px;"></i> Back to Dashboard
+        </a>
     </div>
 
-    <div class="user-list">
-        <table
-            style="width: 100%; border-collapse: collapse; background: var(--surface-dark); border-radius: 10px; overflow: hidden;">
+    <!-- Stats Bar (Visual Only for now) -->
+    <div
+        style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 1.5rem; margin-bottom: 2.5rem; padding: 0 1rem;">
+        <div
+            style="background: white; padding: 1.5rem; border-radius: 20px; box-shadow: 0 4px 20px rgba(0,0,0,0.03); border: 1px solid rgba(0,0,0,0.02);">
+            <div
+                style="color: #64748b; font-size: 0.85rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px;">
+                Total Users</div>
+            <div style="font-size: 1.8rem; font-weight: 900; color: #1e293b; margin-top: 5px;">{{ users|length }}</div>
+        </div>
+        <div
+            style="background: white; padding: 1.5rem; border-radius: 20px; box-shadow: 0 4px 20px rgba(0,0,0,0.03); border: 1px solid rgba(0,0,0,0.02);">
+            <div
+                style="color: var(--primary); font-size: 0.85rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px;">
+                Active Admins</div>
+            <div style="font-size: 1.8rem; font-weight: 900; color: #1e293b; margin-top: 5px;">{{
+                users|selectattr('role', 'equalto', 'admin')|list|length }}</div>
+        </div>
+    </div>
+
+    <!-- Users Table Card -->
+    <div
+        style="background: white; border-radius: 24px; box-shadow: 0 20px 40px rgba(0,0,0,0.04); border: 1px solid rgba(0,0,0,0.02); overflow: hidden;">
+        <table style="width: 100%; border-collapse: collapse;">
             <thead>
-                <tr style="background: rgba(255,255,255,0.05); text-align: left;">
-                    <th style="padding: 1rem;">User Info</th>
-                    <th style="padding: 1rem;">Contact</th>
-                    <th style="padding: 1rem;">Role</th>
-                    <th style="padding: 1rem;">Joined</th>
-                    <th style="padding: 1rem;">Actions</th>
+                <tr style="background: #f8fafc; text-align: left;">
+                    <th
+                        style="padding: 1.5rem; color: #475569; font-weight: 800; font-size: 0.85rem; text-transform: uppercase;">
+                        User Identity</th>
+                    <th
+                        style="padding: 1.5rem; color: #475569; font-weight: 800; font-size: 0.85rem; text-transform: uppercase;">
+                        Account Information</th>
+                    <th
+                        style="padding: 1.5rem; color: #475569; font-weight: 800; font-size: 0.85rem; text-transform: uppercase;">
+                        Permission Level</th>
+                    <th
+                        style="padding: 1.5rem; color: #475569; font-weight: 800; font-size: 0.85rem; text-transform: uppercase;">
+                        Registration</th>
+                    <th
+                        style="padding: 1.5rem; color: #475569; font-weight: 800; font-size: 0.85rem; text-transform: uppercase; text-align: right;">
+                        Administrative Control</th>
                 </tr>
             </thead>
             <tbody>
                 {% for user in users %}
-                <tr style="border-bottom: 1px solid rgba(255,255,255,0.05);">
-                    <td style="padding: 1rem;">
-                        <strong>{{ user.username }}</strong>
-                        <div style="font-size: 0.8rem; color: #888;">{{ user.full_name or 'No name set' }}</div>
+                <tr style="border-bottom: 1px solid #f1f5f9; transition: 0.2s;"
+                    onmouseover="this.style.background='#fffcf9'" onmouseout="this.style.background='transparent'">
+                    <td style="padding: 1.5rem;">
+                        <div style="display: flex; align-items: center; gap: 12px;">
+                            <div class="user-avatar {{ 'admin-avatar' if user.role == 'admin' else '' }}">
+                                {{ user.username[0]|upper }}
+                            </div>
+                            <div>
+                                <div style="font-weight: 800; color: #1e293b;">{{ user.username }}</div>
+                                <div style="font-size: 0.85rem; color: #64748b;">{{ user.full_name or 'Profile
+                                    incomplete' }}</div>
+                            </div>
+                        </div>
                     </td>
-                    <td style="padding: 1rem; font-size: 0.9rem;">
-                        <div>{{ user.email or 'N/A' }}</div>
+                    <td style="padding: 1.5rem;">
+                        <div style="color: #475569; font-weight: 500; font-size: 0.95rem;">{{ user.email or 'No email
+                            provided' }}</div>
                     </td>
-                    <td style="padding: 1rem;">
-                        <span class="badge {{ 'badge-admin' if user.role == 'admin' else '' }}">
-                            {{ user.role|upper }}
+                    <td style="padding: 1.5rem;">
+                        <span class="permission-badge {{ 'admin-badge' if user.role == 'admin' else '' }}">
+                            {{ user.role }}
                         </span>
                     </td>
-                    <td style="padding: 1rem; font-size: 0.8rem; color: #aaa;">
-                        {{ user.created_at.strftime('%Y-%m-%d') if user.created_at else 'N/A' }}
+                    <td style="padding: 1.5rem;">
+                        <div style="color: #94a3b8; font-size: 0.85rem; display: flex; align-items: center; gap: 6px;">
+                            <i class="far fa-calendar-alt"></i>
+                            {{ user.created_at.strftime('%b %d, %Y') if user.created_at else 'Legacy User' }}
+                        </div>
                     </td>
-                    <td style="padding: 1rem;">
-                        <div style="display: flex; gap: 0.5rem;">
-                            <a href="{{ url_for('toggle_role', user_id=user.id) }}" class="btn"
-                                style="background: #f1c40f; color: #000; font-size: 0.8rem;"
-                                onclick="return confirm('Change this users role?')">
-                                <i class="fas fa-exchange-alt"></i> Toggle Role
+                    <td style="padding: 1.5rem; text-align: right;">
+                        <div style="display: inline-flex; gap: 0.5rem;">
+                            <a href="{{ url_for('toggle_role', user_id=user.id) }}"
+                                style="padding: 0.6rem 1rem; border-radius: 10px; background: #fffbeb; color: #d97706; text-decoration: none; font-size: 0.85rem; font-weight: 700; border: 1px solid #fde68a;"
+                                onclick="return confirm('Change {{ user.username }}\'s role?')">
+                                <i class="fas fa-user-shield"></i> Promote/Demote
                             </a>
                             {% if user.id != session['user_id'] %}
-                            <a href="{{ url_for('delete_user', user_id=user.id) }}" class="btn btn-danger"
-                                style="font-size: 0.8rem;" onclick="return confirm('Permanently delete this user?')">
-                                <i class="fas fa-user-minus"></i> Delete
+                            <a href="{{ url_for('delete_user', user_id=user.id) }}"
+                                style="padding: 0.6rem 1rem; border-radius: 10px; background: #fef2f2; color: #dc2626; text-decoration: none; font-size: 0.85rem; font-weight: 700; border: 1px solid #fecaca;"
+                                onclick="return confirm('WARNING: Permanently delete {{ user.username }}?')">
+                                <i class="fas fa-trash-alt"></i>
                             </a>
                             {% endif %}
                         </div>
@@ -61,12 +149,4 @@
         </table>
     </div>
 </div>
-
-<style>
-    .badge-admin {
-        background: rgba(241, 196, 15, 0.2) !important;
-        color: #f1c40f !important;
-        border: 1px solid #f1c40f;
-    }
-</style>
 {% endblock %}

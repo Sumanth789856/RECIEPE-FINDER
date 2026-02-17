@@ -3,19 +3,38 @@
 {% block title %}Login - RecipeHub{% endblock %}
 
 {% block content %}
-<div class="auth-form">
+<div class="auth-form"
+    style="max-width: 450px; margin: 4rem auto; padding: 3rem; border-radius: 30px; border: 1px solid var(--glass-border); background: var(--surface-color); animation: fadeIn 0.8s ease;">
     <h2 style="text-align: center; margin-bottom: 2rem;">Welcome Back!</h2>
     <form method="POST">
         <label for="username">Username</label>
         <input type="text" id="username" name="username" class="form-control" required placeholder="Enter username">
 
         <label for="password" style="margin-top: 1rem;">Password</label>
-        <input type="password" id="password" name="password" class="form-control" required placeholder="Enter password">
+        <div style="position: relative;">
+            <input type="password" id="password" name="password" class="form-control" required
+                placeholder="Enter password" style="padding-right: 40px;">
+            <i class="fas fa-eye" id="togglePassword"
+                style="position: absolute; right: 15px; top: 50%; transform: translateY(-50%); cursor: pointer; color: var(--text-secondary);"></i>
+        </div>
 
-        <button type="submit" class="btn btn-primary" style="width: 100%; margin-top: 2rem;">Login</button>
+        <button type="submit" class="btn btn-primary"
+            style="width: 100%; margin-top: 2rem; padding: 1rem; border-radius: 12px; font-weight: 700;">Login</button>
     </form>
-    <p style="margin-top: 1rem; text-align: center; font-size: 0.9rem;">
-        Do not have an account? <a href="{{ url_for('register') }}" style="color: var(--primary-color);">Register
+
+    <script>
+        const togglePassword = document.querySelector('#togglePassword');
+        const password = document.querySelector('#password');
+
+        togglePassword.addEventListener('click', function (e) {
+            const type = password.getAttribute('type') === 'password' ? 'text' : 'password';
+            password.setAttribute('type', type);
+            this.classList.toggle('fa-eye-slash');
+        });
+    </script>
+    <p style="margin-top: 1.5rem; text-align: center; font-size: 0.95rem; color: var(--text-secondary);">
+        Don't have an account? <a href="{{ url_for('register') }}"
+            style="color: var(--primary); font-weight: 700;">Register
             here</a>
     </p>
 </div>

@@ -7,11 +7,18 @@ from werkzeug.utils import secure_filename
 from dotenv import load_dotenv
 from youtubesearchpython import VideosSearch
 import time
+import json
+from urllib.request import urlopen, Request
+from urllib.parse import quote
 
 load_dotenv()
 
 app = Flask(__name__)
 app.secret_key = os.getenv("SECRET_KEY", "your_secret_key")
+
+# Cache for suggestions to improve speed
+SUGGESTION_CACHE = {}
+CACHE_TIMEOUT = 300 # 5 minutes
 app.config['UPLOAD_FOLDER'] = 'static/uploads/videos'
 app.config['PROFILE_FOLDER'] = 'static/uploads/profiles'
 app.config['MAX_CONTENT_LENGTH'] = 100 * 1024 * 1024  # 100MB max upload size
@@ -85,7 +92,22 @@ def register():
     if request.method == 'POST':
         username = request.form['username']
         password = request.form['password']
+        full_name = request.form.get('full_name')
+        email = request.form.get('email')
+        gender = request.form.get('gender')
+        age = request.form.get('age')
+        phone_number = request.form.get('phone_number')
+        
         hashed_pw = generate_password_hash(password)
+        
+        profile_photo = None
+        if 'profile_photo' in request.files:
+            file = request.files['profile_photo']
+            if file and file.filename != '':
+                filename = secure_filename(file.filename)
+                filename = f"{int(time.time())}_{filename}"
+                file.save(os.path.join(app.config['PROFILE_FOLDER'], filename))
+                profile_photo = filename
         
         conn = get_db_connection()
         try:
@@ -94,7 +116,10 @@ def register():
                 if cursor.fetchone():
                     flash('Username already exists!', 'danger')
                 else:
-                    cursor.execute("INSERT INTO users (username, password, role) VALUES (%s, %s, 'user')", (username, hashed_pw))
+                    cursor.execute(
+                        "INSERT INTO users (username, password, full_name, email, gender, age, phone_number, profile_photo, role) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, 'user')",
+                        (username, hashed_pw, full_name, email, gender, age or None, phone_number, profile_photo)
+                    )
                     conn.commit()
                     flash('Registration successful! Please login.', 'success')
                     return redirect(url_for('login'))
@@ -120,6 +145,7 @@ def login():
                     session['user_id'] = user['id']
                     session['username'] = user['username']
                     session['role'] = user['role']
+                    session['profile_photo'] = user.get('profile_photo')
                     flash('Logged in successfully!', 'success')
                     return redirect(url_for('dashboard' if user['role'] == 'admin' else 'index'))
                 else:
@@ -162,6 +188,7 @@ def upload_recipe():
             filename = f"{int(time.time())}_{filename}"
             file.save(os.path.join(app.config['UPLOAD_FOLDER'], filename))
             
+            conn = get_db_connection()
             try:
                 category = request.form.get('category', 'Other')
                 cooking_time = request.form.get('cooking_time', 0)
@@ -242,19 +269,65 @@ def dashboard():
         return redirect(url_for('login'))
         
     conn = get_db_connection()
+    analytics_data = {'labels': [], 'views': [], 'likes': []}
+    admin_stats = {}
+    
     try:
         with conn.cursor() as cursor:
             if session['role'] == 'admin':
                 # Admin sees all recipes
-                 cursor.execute("SELECT recipes.*, users.username FROM recipes JOIN users ON recipes.user_id = users.id ORDER BY created_at DESC")
+                cursor.execute("""
+                    SELECT recipes.*, users.username, 
+                    (SELECT COUNT(*) FROM recipe_likes WHERE recipe_id = recipes.id) as like_count
+                    FROM recipes 
+                    JOIN users ON recipes.user_id = users.id 
+                    ORDER BY views DESC LIMIT 10
+                """)
+                top_recipes = cursor.fetchall()
+                for r in top_recipes:
+                    analytics_data['labels'].append(r['title'][:15] + '...')
+                    analytics_data['views'].append(r['views'])
+                    analytics_data['likes'].append(r['like_count'])
+                
+                # Full list for the management table
+                cursor.execute("SELECT recipes.*, users.username FROM recipes JOIN users ON recipes.user_id = users.id ORDER BY created_at DESC")
+                recipes = cursor.fetchall()
+
+                # Admin-specific stats
+                cursor.execute("SELECT COUNT(*) as count FROM users")
+                admin_stats['total_users'] = cursor.fetchone()['count']
+                cursor.execute("SELECT COUNT(*) as count FROM recipes")
+                admin_stats['total_recipes'] = cursor.fetchone()['count']
+                
+                # Fetch recent user signups for a mini-trend (last 7 days)
+                cursor.execute("SELECT DATE(created_at) as date, COUNT(*) as count FROM users GROUP BY DATE(created_at) ORDER BY date DESC LIMIT 7")
+                user_trend = cursor.fetchall()
+                admin_stats['user_trend'] = {
+                    'labels': [str(t['date']) for t in reversed(user_trend)],
+                    'counts': [t['count'] for t in reversed(user_trend)]
+                }
             else:
                 # User sees only their recipes
-                cursor.execute("SELECT * FROM recipes WHERE user_id=%s ORDER BY created_at DESC", (session['user_id'],))
-            recipes = cursor.fetchall()
+                cursor.execute("""
+                    SELECT recipes.*, 
+                    (SELECT COUNT(*) FROM recipe_likes WHERE recipe_id = recipes.id) as like_count 
+                    FROM recipes 
+                    WHERE user_id=%s 
+                    ORDER BY created_at DESC
+                """, (session['user_id'],))
+                recipes = cursor.fetchall()
+                
+                for r in reversed(recipes[:10]): # Show last 10 for chart
+                    analytics_data['labels'].append(r['title'][:15] + '...')
+                    analytics_data['views'].append(r['views'])
+                    analytics_data['likes'].append(r['like_count'])
     finally:
         conn.close()
         
-    return render_template('dashboard.html', recipes=recipes)
+    return render_template('dashboard.html', 
+                          recipes=recipes, 
+                          analytics=analytics_data, 
+                          admin_stats=admin_stats)
 
 @app.route('/delete/<int:id>')
 def delete_recipe(id):
@@ -466,9 +539,43 @@ def update_profile():
                     (full_name, email, gender, phone_number, age, session['user_id'])
                 )
             conn.commit()
+            if profile_photo:
+                session['profile_photo'] = profile_photo
         flash('Profile updated successfully!', 'success')
     except Exception as e:
         flash(f"Error updating profile: {str(e)}", 'danger')
+    finally:
+        conn.close()
+    return redirect(url_for('profile'))
+
+@app.route('/change_password', methods=['POST'])
+def change_password():
+    if 'user_id' not in session:
+        return redirect(url_for('login'))
+        
+    current_password = request.form.get('current_password')
+    new_password = request.form.get('new_password')
+    confirm_password = request.form.get('confirm_password')
+    
+    if new_password != confirm_password:
+        flash('New passwords do not match!', 'danger')
+        return redirect(url_for('profile'))
+        
+    conn = get_db_connection()
+    try:
+        with conn.cursor() as cursor:
+            cursor.execute("SELECT password FROM users WHERE id=%s", (session['user_id'],))
+            user = cursor.fetchone()
+            
+            if user and check_password_hash(user['password'], current_password):
+                hashed_pw = generate_password_hash(new_password)
+                cursor.execute("UPDATE users SET password=%s WHERE id=%s", (hashed_pw, session['user_id']))
+                conn.commit()
+                flash('Password updated successfully!', 'success')
+            else:
+                flash('Incorrect current password!', 'danger')
+    except Exception as e:
+        flash(f"Error updating password: {str(e)}", 'danger')
     finally:
         conn.close()
     return redirect(url_for('profile'))
@@ -530,6 +637,55 @@ def delete_user(user_id):
     finally:
         conn.close()
     return redirect(url_for('admin_users'))
+
+@app.route('/suggestions')
+def suggestions():
+    query = request.args.get('q', '').lower().strip()
+    if not query:
+        return {"suggestions": []}
+    
+    # Check cache first
+    now = time.time()
+    if query in SUGGESTION_CACHE:
+        cached_data, timestamp = SUGGESTION_CACHE[query]
+        if now - timestamp < CACHE_TIMEOUT:
+            return {"suggestions": cached_data}
+    
+    suggestions_list = []
+    
+    # 1. Get local suggestions (fastest)
+    conn = get_db_connection()
+    try:
+        with conn.cursor() as cursor:
+            cursor.execute(
+                "SELECT DISTINCT title FROM recipes WHERE title ILIKE %s LIMIT 3",
+                (f'%{query}%',)
+            )
+            suggestions_list.extend([row['title'] for row in cursor.fetchall()])
+    except:
+        pass
+    finally:
+        conn.close()
+        
+    # 2. Get YouTube suggestions (External - cached)
+    try:
+        url = f"https://suggestqueries.google.com/complete/search?client=firefox&ds=yt&q={quote(query)}"
+        req = Request(url, headers={'User-Agent': 'Mozilla/5.0'})
+        # Set a short timeout for the network request
+        with urlopen(req, timeout=1.5) as response:
+            data = json.loads(response.read().decode())
+            if len(data) > 1:
+                for s in data[1][:4]:
+                    if s not in suggestions_list:
+                        suggestions_list.append(s)
+    except:
+        pass
+    
+    # Save to cache before returning
+    final_suggestions = suggestions_list[:7]
+    SUGGESTION_CACHE[query] = (final_suggestions, now)
+        
+    return {"suggestions": final_suggestions}
 
 if __name__ == '__main__':
     app.run(debug=True)

@@ -3,97 +3,315 @@
 {% block title %}Dashboard - RecipeHub Control Center{% endblock %}
 
 {% block content %}
-<div class="dashboard-wrapper" style="animation: fadeIn 0.8s ease;">
+<div class="dashboard-wrapper" style="animation: fadeIn 0.8s ease; padding-bottom: 5rem;">
+    <!-- Page Header -->
     <div class="dashboard-header"
-        style="display: flex; justify-content: space-between; align-items: flex-end; margin-bottom: 3rem; flex-wrap: wrap; gap: 1.5rem;">
+        style="display: flex; justify-content: space-between; align-items: flex-end; margin-bottom: 3.5rem; flex-wrap: wrap; gap: 1.5rem; padding: 0 1rem;">
         <div>
-            <h1 style="font-size: 2.5rem; margin-bottom: 0.5rem;">
+            <h1 style="font-size: 2.8rem; font-weight: 900; color: #1e293b; letter-spacing: -2px; margin: 0;">
                 {% if session['role'] == 'admin' %}
-                <i class="fas fa-user-shield" style="color: #f1c40f;"></i> Admin Control
+                Platform <span style="color: var(--primary);">Intelligence</span>
                 {% else %}
-                <i class="fas fa-utensils-alt" style="color: var(--primary-color);"></i> My Kitchen
+                My Culinary <span style="color: var(--primary);">Kitchen</span>
                 {% endif %}
             </h1>
-            <p style="color: var(--text-secondary);">Manage your culinary contributions and platform status.</p>
+            <p style="color: #64748b; font-weight: 500; margin-top: 5px;">
+                {% if session['role'] == 'admin' %}
+                Oversee platform growth and manage user contributions globally.
+                {% else %}
+                Track your recipe performance and manage your culinary creations.
+                {% endif %}
+            </p>
         </div>
         <div style="display: flex; gap: 1rem;">
             {% if session['role'] == 'admin' %}
-            <a href="{{ url_for('admin_users') }}" class="btn"
-                style="background: rgba(241, 196, 15, 0.1); color: #f1c40f; border: 1px solid rgba(241, 196, 15, 0.3);">
-                <i class="fas fa-users-cog"></i> Users Management
+            <a href="{{ url_for('admin_users') }}" class="btn btn-outline"
+                style="background: white; border: 1px solid #e2e8f0; color: #475569; padding: 0.8rem 1.5rem; border-radius: 12px; font-weight: 700;">
+                <i class="fas fa-users-cog" style="margin-right: 8px;"></i> User Directory
             </a>
             {% endif %}
-            <a href="{{ url_for('upload_recipe') }}" class="btn btn-primary">
-                <i class="fas fa-plus-circle"></i> New Recipe
+            <a href="{{ url_for('upload_recipe') }}" class="btn btn-primary"
+                style="padding: 0.8rem 1.8rem; border-radius: 12px; font-weight: 800; box-shadow: 0 10px 20px rgba(249, 115, 22, 0.2);">
+                <i class="fas fa-plus" style="margin-right: 8px;"></i> Share New Recipe
             </a>
         </div>
     </div>
 
-    <div class="recipe-list">
+    <!-- Quick Stats Section -->
+    <div
+        style="display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 1.5rem; margin-bottom: 3rem; padding: 0 1rem;">
+        <div
+            style="background: white; padding: 1.8rem; border-radius: 24px; box-shadow: 0 10px 30px rgba(0,0,0,0.03); border: 1px solid rgba(0,0,0,0.02);">
+            <div
+                style="width: 40px; height: 40px; background: rgba(249, 115, 22, 0.1); color: var(--primary); border-radius: 12px; display: flex; align-items: center; justify-content: center; margin-bottom: 1.2rem;">
+                <i class="fas fa-utensils"></i>
+            </div>
+            <div style="color: #64748b; font-size: 0.85rem; font-weight: 700; text-transform: uppercase;">Total Recipes
+            </div>
+            <div style="font-size: 2rem; font-weight: 900; color: #1e293b; margin-top: 5px;">
+                {{ admin_stats.total_recipes if session['role'] == 'admin' else recipes|length }}
+            </div>
+        </div>
+
+        {% if session['role'] == 'admin' %}
+        <div
+            style="background: white; padding: 1.8rem; border-radius: 24px; box-shadow: 0 10px 30px rgba(0,0,0,0.03); border: 1px solid rgba(0,0,0,0.02);">
+            <div
+                style="width: 40px; height: 40px; background: rgba(37, 99, 235, 0.1); color: #2563eb; border-radius: 12px; display: flex; align-items: center; justify-content: center; margin-bottom: 1.2rem;">
+                <i class="fas fa-users"></i>
+            </div>
+            <div style="color: #64748b; font-size: 0.85rem; font-weight: 700; text-transform: uppercase;">Total Users
+            </div>
+            <div style="font-size: 2rem; font-weight: 900; color: #1e293b; margin-top: 5px;">{{ admin_stats.total_users
+                }}
+            </div>
+        </div>
+        {% endif %}
+
+        <div class="analytics-toggle-card" onclick="toggleAnalytics()"
+            style="background: linear-gradient(135deg, white 0%, #fff7ed 100%); padding: 1.8rem; border-radius: 24px; box-shadow: 0 10px 30px rgba(249, 115, 22, 0.1); border: 1px solid rgba(249, 115, 22, 0.1); cursor: pointer; transition: 0.3s; position: relative; overflow: hidden;">
+            <div
+                style="width: 40px; height: 40px; background: var(--primary); color: white; border-radius: 12px; display: flex; align-items: center; justify-content: center; margin-bottom: 1.2rem; box-shadow: 0 5px 15px rgba(249, 115, 22, 0.3);">
+                <i class="fas fa-chart-pie"></i>
+            </div>
+            <div style="color: #64748b; font-size: 0.85rem; font-weight: 700; text-transform: uppercase;">Growth &
+                Trends
+            </div>
+            <div
+                style="font-size: 1.1rem; font-weight: 800; color: #1e293b; margin-top: 10px; display: flex; align-items: center; gap: 8px;">
+                View Analytics <i class="fas fa-chevron-right" id="analytics-arrow"
+                    style="font-size: 0.8rem; transition: 0.3s;"></i>
+            </div>
+        </div>
+    </div>
+
+    <!-- Analytics Charts Section -->
+    <div id="analytics-panel" style="display: none; padding: 0 1rem 3rem; animation: slideDown 0.5s ease-out forwards;">
+        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(400px, 1fr)); gap: 1.5rem;">
+            <!-- Performance Chart -->
+            <div
+                style="background: white; padding: 2rem; border-radius: 28px; box-shadow: 0 15px 35px rgba(0,0,0,0.05); border: 1px solid rgba(0,0,0,0.02);">
+                <h3
+                    style="font-size: 1.25rem; font-weight: 800; margin-bottom: 1.5rem; color: #1e293b; display: flex; align-items: center; gap: 10px;">
+                    <i class="fas fa-fire" style="color: #ef4444;"></i> Recipe Performance
+                </h3>
+                <div style="height: 300px; position: relative;">
+                    <canvas id="performanceChart"></canvas>
+                </div>
+            </div>
+
+            {% if session['role'] == 'admin' %}
+            <!-- User Growth Chart (Admin Only) -->
+            <div
+                style="background: white; padding: 2rem; border-radius: 28px; box-shadow: 0 15px 35px rgba(0,0,0,0.05); border: 1px solid rgba(0,0,0,0.02);">
+                <h3
+                    style="font-size: 1.25rem; font-weight: 800; margin-bottom: 1.5rem; color: #1e293b; display: flex; align-items: center; gap: 10px;">
+                    <i class="fas fa-user-plus" style="color: #2563eb;"></i> Audience Growth
+                </h3>
+                <div style="height: 300px; position: relative;">
+                    <canvas id="growthChart"></canvas>
+                </div>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script>
+        function toggleAnalytics() {
+            const panel = document.getElementById('analytics-panel');
+            const arrow = document.getElementById('analytics-arrow');
+            const isVisible = panel.style.display === 'block';
+
+            panel.style.display = isVisible ? 'none' : 'block';
+            arrow.style.transform = isVisible ? 'rotate(0deg)' : 'rotate(90deg)';
+
+            if (!isVisible) {
+                setTimeout(renderCharts, 50);
+            }
+        }
+
+        let perfChart, growthChart;
+
+        function renderCharts() {
+            const analytics = JSON.parse('{{ analytics | tojson | safe }}');
+
+            const ctxPerf = document.getElementById('performanceChart').getContext('2d');
+            if (perfChart) perfChart.destroy();
+
+            perfChart = new Chart(ctxPerf, {
+                type: 'bar',
+                data: {
+                    labels: analytics.labels,
+                    datasets: [
+                        {
+                            label: 'Views',
+                            data: analytics.views,
+                            backgroundColor: 'rgba(249, 115, 22, 0.7)',
+                            borderColor: 'var(--primary)',
+                            borderWidth: 1,
+                            borderRadius: 6,
+                            barThickness: 18
+                        },
+                        {
+                            label: 'Likes',
+                            data: analytics.likes,
+                            backgroundColor: 'rgba(16, 185, 129, 0.7)',
+                            borderColor: '#059669',
+                            borderWidth: 1,
+                            borderRadius: 6,
+                            barThickness: 18
+                        }
+                    ]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: { position: 'top', labels: { usePointStyle: true, font: { family: "'Inter', sans-serif", weight: '600' } } }
+                    },
+                    scales: {
+                        y: { beginAtZero: true, grid: { borderDash: [5, 5], drawBorder: false } },
+                        x: { grid: { display: false } }
+                    }
+                }
+            });
+
+            {% if session['role'] == 'admin' %}
+            const adminStats = JSON.parse('{{ admin_stats | tojson | safe }}');
+            const ctxGrowth = document.getElementById('growthChart').getContext('2d');
+            if (growthChart) growthChart.destroy();
+
+            growthChart = new Chart(ctxGrowth, {
+                type: 'line',
+                data: {
+                    labels: adminStats.user_trend.labels,
+                    datasets: [{
+                        label: 'New Users',
+                        data: adminStats.user_trend.counts,
+                        borderColor: '#2563eb',
+                        backgroundColor: 'rgba(37, 99, 235, 0.1)',
+                        fill: true,
+                        tension: 0.4,
+                        borderWidth: 3,
+                        pointBackgroundColor: '#fff',
+                        pointBorderColor: '#2563eb',
+                        pointBorderWidth: 2,
+                        pointRadius: 4
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: { legend: { display: false } },
+                    scales: {
+                        y: { beginAtZero: true, grid: { borderDash: [5, 5], drawBorder: false } },
+                        x: { grid: { display: false } }
+                    }
+                }
+            });
+            {% endif %}
+        }
+    </script>
+
+    <style>
+        @keyframes slideDown {
+            from {
+                opacity: 0;
+                transform: translateY(-20px);
+            }
+
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .analytics-toggle-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 15px 40px rgba(249, 115, 22, 0.15) !important;
+        }
+    </style>
+
+    <div class="recipe-list" style="padding: 0 1rem;">
         {% if recipes %}
         <div
-            style="overflow-x: auto; border-radius: 24px; border: 1px solid var(--glass-border); background: var(--surface-color);">
-            <table style="width: 100%; border-collapse: collapse; min-width: 800px;">
+            style="background: white; border-radius: 28px; box-shadow: 0 20px 50px rgba(0,0,0,0.04); border: 1px solid rgba(0,0,0,0.02); overflow: hidden;">
+            <table style="width: 100%; border-collapse: collapse;">
                 <thead>
-                    <tr style="background: rgba(255,255,255,0.03);">
-                        <th style="padding: 1.5rem; text-align: left; color: var(--text-secondary); font-weight: 600;">
-                            PREVIEW</th>
-                        <th style="padding: 1.5rem; text-align: left; color: var(--text-secondary); font-weight: 600;">
-                            RECIPE DETAILS</th>
-                        <th style="padding: 1.5rem; text-align: left; color: var(--text-secondary); font-weight: 600;">
-                            CREATOR</th>
-                        <th style="padding: 1.5rem; text-align: left; color: var(--text-secondary); font-weight: 600;">
-                            POSTED ON</th>
-                        <th style="padding: 1.5rem; text-align: right; color: var(--text-secondary); font-weight: 600;">
-                            OPERATIONS</th>
+                    <tr style="background: #f8fafc; text-align: left;">
+                        <th
+                            style="padding: 1.5rem; color: #475569; font-weight: 800; font-size: 0.85rem; text-transform: uppercase;">
+                            Culinary Work</th>
+                        <th
+                            style="padding: 1.5rem; color: #475569; font-weight: 800; font-size: 0.85rem; text-transform: uppercase;">
+                            Class & Type</th>
+                        <th
+                            style="padding: 1.5rem; color: #475569; font-weight: 800; font-size: 0.85rem; text-transform: uppercase;">
+                            Author</th>
+                        <th
+                            style="padding: 1.5rem; color: #475569; font-weight: 800; font-size: 0.85rem; text-transform: uppercase;">
+                            Performance</th>
+                        <th
+                            style="padding: 1.5rem; color: #475569; font-weight: 800; font-size: 0.85rem; text-transform: uppercase; text-align: right;">
+                            Management</th>
                     </tr>
                 </thead>
                 <tbody>
                     {% for recipe in recipes %}
-                    <tr style="border-top: 1px solid var(--glass-border); transition: 0.3s;"
-                        onmouseover="this.style.background='rgba(255,255,255,0.02)'"
-                        onmouseout="this.style.background='transparent'">
-                        <td style="padding: 1.5rem; width: 140px;">
-                            <div
-                                style="width: 110px; height: 70px; border-radius: 12px; overflow: hidden; position: relative; background: #000; box-shadow: 0 4px 12px rgba(0,0,0,0.4);">
-                                <video style="width: 100%; height: 100%; object-fit: cover;">
-                                    <source
-                                        src="{{ url_for('static', filename='uploads/videos/' + recipe.video_filename) }}"
-                                        type="video/mp4">
-                                </video>
+                    <tr style="border-bottom: 1px solid #f1f5f9; transition: 0.3s;"
+                        onmouseover="this.style.background='#fffcf9'" onmouseout="this.style.background='transparent'">
+                        <td style="padding: 1.5rem;">
+                            <div style="display: flex; gap: 1.2rem; align-items: center;">
                                 <div
-                                    style="position: absolute; top: 0; left: 0; width: 100%; height: 100%; display: flex; align-items: center; justify-content: center; background: rgba(0,0,0,0.2); pointer-events: none;">
-                                    <i class="fas fa-play" style="color: white; font-size: 0.8rem; opacity: 0.7;"></i>
+                                    style="width: 100px; height: 60px; border-radius: 12px; overflow: hidden; background: #000; box-shadow: 0 5px 15px rgba(0,0,0,0.15);">
+                                    <video style="width: 100%; height: 100%; object-fit: cover;">
+                                        <source
+                                            src="{{ url_for('static', filename='uploads/videos/' + recipe.video_filename) }}"
+                                            type="video/mp4">
+                                    </video>
+                                </div>
+                                <div>
+                                    <div
+                                        style="font-weight: 800; color: #1e293b; font-size: 1.1rem; margin-bottom: 2px;">
+                                        {{ recipe.title }}</div>
+                                    <div
+                                        style="font-size: 0.85rem; color: #64748b; max-width: 250px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">
+                                        {{ recipe.description or 'No description provided' }}</div>
                                 </div>
                             </div>
                         </td>
                         <td style="padding: 1.5rem;">
-                            <div
-                                style="font-weight: 700; color: var(--text-primary); font-size: 1.1rem; margin-bottom: 0.3rem;">
-                                {{ recipe.title }}</div>
-                            <div
-                                style="font-size: 0.85rem; color: var(--text-secondary); max-width: 300px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">
-                                {{ recipe.instructions or recipe.description }}</div>
-                        </td>
-                        <td style="padding: 1.5rem;">
-                            <span class="badge"
-                                style="background: rgba(108, 92, 231, 0.1); border: 1px solid rgba(108, 92, 231, 0.2); color: var(--primary-color);">
-                                <i class="fas fa-user-circle"></i> {{ recipe.username if session['role'] == 'admin' else
-                                'You' }}
+                            <span
+                                style="background: #f1f5f9; color: #475569; padding: 0.4rem 0.8rem; border-radius: 8px; font-weight: 700; font-size: 0.8rem; border: 1px solid rgba(0,0,0,0.03);">
+                                {{ recipe.category or 'General' }}
                             </span>
                         </td>
-                        <td style="padding: 1.5rem; color: var(--text-secondary); font-size: 0.9rem;">
-                            {{ recipe.created_at.strftime('%b %d, %Y') if recipe.created_at else 'Ancient Date' }}
+                        <td style="padding: 1.5rem;">
+                            <div style="display: flex; align-items: center; gap: 10px;">
+                                <div
+                                    style="width: 32px; height: 32px; background: #e2e8f0; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 0.75rem; font-weight: 900; color: #475569;">
+                                    {{ recipe.username[0]|upper }}
+                                </div>
+                                <span style="font-weight: 600; color: #1e293b; font-size: 0.95rem;">{{ recipe.username
+                                    }}</span>
+                            </div>
+                        </td>
+                        <td style="padding: 1.5rem;">
+                            <div style="color: #94a3b8; font-size: 0.85rem; font-weight: 600;">
+                                <i class="far fa-calendar-alt" style="margin-right: 5px;"></i> {{
+                                recipe.created_at.strftime('%b %d, %Y') if recipe.created_at else 'Active' }}
+                            </div>
                         </td>
                         <td style="padding: 1.5rem; text-align: right;">
-                            <div style="display: flex; gap: 0.8rem; justify-content: flex-end;">
-                                <a href="{{ url_for('edit_recipe', id=recipe.id) }}" class="btn"
-                                    style="padding: 0.6rem 1.2rem; background: rgba(108, 92, 231, 0.15); color: #A29BFE; border-radius: 12px;">
-                                    <i class="fas fa-edit"></i> Edit
+                            <div style="display: inline-flex; gap: 0.6rem;">
+                                <a href="{{ url_for('edit_recipe', id=recipe.id) }}"
+                                    style="padding: 0.6rem 1.1rem; border-radius: 12px; background: #fffbeb; color: #d97706; text-decoration: none; font-size: 0.9rem; font-weight: 800; border: 1px solid #fde68a; transition: 0.2s;">
+                                    <i class="fas fa-magic"></i> Edit
                                 </a>
-                                <a href="{{ url_for('delete_recipe', id=recipe.id) }}" class="btn btn-danger"
-                                    style="padding: 0.6rem 1.2rem; border-radius: 12px;"
-                                    onclick="return confirm('Permanently remove this recipe?')">
+                                <a href="{{ url_for('delete_recipe', id=recipe.id) }}"
+                                    style="padding: 0.6rem 1.1rem; border-radius: 12px; background: #fef2f2; color: #dc2626; text-decoration: none; font-size: 0.9rem; font-weight: 800; border: 1px solid #fecaca; transition: 0.2s;"
+                                    onclick="return confirm('Archive this culinary work permanently?')">
                                     <i class="fas fa-trash-alt"></i>
                                 </a>
                             </div>
@@ -105,14 +323,19 @@
         </div>
         {% else %}
         <div
-            style="text-align: center; padding: 6rem 2rem; background: var(--surface-color); border-radius: 30px; border: 1px dashed var(--glass-border);">
-            <i class="fas fa-folder-open"
-                style="font-size: 4rem; color: var(--text-secondary); margin-bottom: 2rem; opacity: 0.3;"></i>
-            <h3>No Contributions Found</h3>
-            <p style="color: var(--text-secondary); margin-bottom: 2rem;">Start building your culinary portfolio today.
-            </p>
-            <a href="{{ url_for('upload_recipe') }}" class="btn btn-primary"><i class="fas fa-plus"></i> Upload First
-                Recipe</a>
+            style="text-align: center; padding: 8rem 2rem; background: white; border-radius: 32px; box-shadow: 0 10px 30px rgba(0,0,0,0.03); border: 2px dashed #e2e8f0;">
+            <div
+                style="width: 100px; height: 100px; background: #f8fafc; border-radius: 50%; display: flex; align-items: center; justify-content: center; margin: 0 auto 2rem; color: #94a3b8; font-size: 3rem;">
+                <i class="fas fa-plate-wheat"></i>
+            </div>
+            <h3 style="font-size: 1.8rem; font-weight: 800; color: #1e293b; margin-bottom: 0.5rem;">No Contributions Yet
+            </h3>
+            <p style="color: #64748b; font-size: 1.1rem; max-width: 400px; margin: 0 auto 2.5rem;">Your culinary profile
+                is currently empty. Start your journey by sharing your first masterpiece.</p>
+            <a href="{{ url_for('upload_recipe') }}" class="btn btn-primary"
+                style="padding: 1rem 2.5rem; border-radius: 14px; font-weight: 800;">
+                <i class="fas fa-plus"></i> Upload First Recipe
+            </a>
         </div>
         {% endif %}
     </div>

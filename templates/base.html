@@ -18,21 +18,43 @@
                 style="color: var(--text-main);">Hub</span>
         </a>
         <div class="search-container">
-            <form action="{{ url_for('search') }}" method="GET">
-                <input type="text" name="q" placeholder="Search for your favorite recipes..." value="{{ query or '' }}"
-                    autocomplete="off">
+            <form action="{{ url_for('search') }}" method="GET" style="position: relative;">
+                <input type="text" name="q" id="search-input" placeholder="Search for your favorite recipes..."
+                    value="{{ query or '' }}" autocomplete="off">
                 <button type="submit">
                     <i class="fas fa-search"></i>
                 </button>
+                <div id="search-suggestions" class="suggestions-dropdown"></div>
             </form>
+            <div class="trending-tags"
+                style="margin-top: 8px; font-size: 0.75rem; display: flex; gap: 10px; padding-left: 10px;">
+                <span style="color: #94a3b8; font-weight: 700;">Trending:</span>
+                <a href="/?category=Breakfast"
+                    style="color: var(--primary); text-decoration: none; font-weight: 600;">Breakfast</a>
+                <a href="/?category=Lunch"
+                    style="color: var(--primary); text-decoration: none; font-weight: 600;">Lunch</a>
+                <a href="/?category=Dinner"
+                    style="color: var(--primary); text-decoration: none; font-weight: 600;">Dinner</a>
+            </div>
         </div>
         <ul class="nav-links">
-            <li><a href="{{ url_for('index') }}">Home</a></li>
+            <li><a href="{{ url_for('index') }}"><i class="fas fa-house"></i> Home</a></li>
             {% if session.get('user_id') %}
-            <li><a href="{{ url_for('dashboard') }}">Dashboard</a></li>
-            <li><a href="{{ url_for('upload_recipe') }}">Upload</a></li>
-            <li><a href="{{ url_for('profile') }}"><i class="fas fa-user-circle"></i></a></li>
-            <li><a href="{{ url_for('logout') }}" class="btn btn-danger"><i class="fas fa-sign-out-alt"></i></a></li>
+            <li><a href="{{ url_for('dashboard') }}"><i class="fas fa-chart-line"></i> Dashboard</a></li>
+            <li><a href="{{ url_for('upload_recipe') }}"><i class="fas fa-upload"></i> Upload</a></li>
+            <li>
+                <a href="{{ url_for('profile') }}" style="padding: 0; display: flex; align-items: center;">
+                    {% if session.get('profile_photo') %}
+                    <img src="{{ url_for('static', filename='uploads/profiles/' + session['profile_photo']) }}"
+                        alt="Profile"
+                        style="width: 35px; height: 35px; border-radius: 50%; object-fit: cover; border: 2px solid var(--primary);">
+                    {% else %}
+                    <i class="fas fa-user-circle" style="font-size: 1.8rem;"></i>
+                    {% endif %}
+                </a>
+            </li>
+            <li><a href="{{ url_for('logout') }}" class="btn btn-danger" style="padding: 0.5rem 1rem;"><i
+                        class="fas fa-sign-out-alt"></i></a></li>
             {% else %}
             <li><a href="{{ url_for('login') }}">Sign In</a></li>
             <li><a href="{{ url_for('register') }}" class="btn btn-primary">Get Started</a></li>
@@ -41,9 +63,19 @@
     </nav>
 
     <div class="container">
-        <!-- Toast Notification Container -->
         <div id="toast-container"
             style="position: fixed; top: 2rem; right: 2rem; z-index: 9999; display: flex; flex-direction: column; gap: 0.75rem; pointer-events: none;">
+        </div>
+
+        <!-- Hidden container for Flash Messages to avoid JS linting errors -->
+        <div id="flash-messages-data" style="display: none;">
+            {% with messages = get_flashed_messages(with_categories=true) %}
+            {% if messages %}
+            {% for category, message in messages %}
+            <div class="flash-message" data-message="{{ message }}" data-category="{{ category }}"></div>
+            {% endfor %}
+            {% endif %}
+            {% endwith %}
         </div>
 
         <script>
@@ -97,13 +129,61 @@
 
             // Handle Flask Flash Messages
             window.onload = () => {
-                {% with messages = get_flashed_messages(with_categories = true) %}
-                {% if messages %}
-                {% for category, message in messages %}
-                showToast("{{ message }}", "{{ category }}");
-                {% endfor %}
-                {% endif %}
-                {% endwith %}
+                const flashData = document.querySelectorAll('#flash-messages-data .flash-message');
+                flashData.forEach(msg => {
+                    showToast(msg.dataset.message, msg.dataset.category);
+                });
+
+                // Search Suggestions Logic
+                const searchInput = document.getElementById('search-input');
+                const suggestionsBox = document.getElementById('search-suggestions');
+
+                if (searchInput && suggestionsBox) {
+                    let debounceTimer;
+                    searchInput.addEventListener('input', (e) => {
+                        clearTimeout(debounceTimer);
+                        const query = e.target.value.trim();
+
+                        if (query.length < 2) {
+                            suggestionsBox.style.display = 'none';
+                            return;
+                        }
+
+                        debounceTimer = setTimeout(async () => {
+                            try {
+                                const response = await fetch(`/suggestions?q=${encodeURIComponent(query)}`);
+                                const data = await response.json();
+
+                                if (data.suggestions && data.suggestions.length > 0) {
+                                    suggestionsBox.innerHTML = data.suggestions
+                                        .map(s => `<div class="suggestion-item"><i class="fas fa-search" style="font-size: 0.8rem; opacity: 0.5;"></i> ${s}</div>`)
+                                        .join('');
+                                    suggestionsBox.style.display = 'block';
+
+                                    // Handle selection
+                                    suggestionsBox.querySelectorAll('.suggestion-item').forEach(item => {
+                                        item.addEventListener('click', () => {
+                                            searchInput.value = item.textContent.trim();
+                                            suggestionsBox.style.display = 'none';
+                                            searchInput.closest('form').submit();
+                                        });
+                                    });
+                                } else {
+                                    suggestionsBox.style.display = 'none';
+                                }
+                            } catch (err) {
+                                console.error('Fetch error:', err);
+                            }
+                        }, 200); // 200ms debounce for high performance
+                    });
+
+                    // Close on outside click
+                    document.addEventListener('click', (e) => {
+                        if (!searchInput.contains(e.target) && !suggestionsBox.contains(e.target)) {
+                            suggestionsBox.style.display = 'none';
+                        }
+                    });
+                }
             }
         </script>
 
@@ -117,6 +197,56 @@
 
         .nav-links li i {
             font-size: 1.2rem;
+            margin-right: 4px;
+        }
+
+        /* Suggestions Styling */
+        .suggestions-dropdown {
+            position: absolute;
+            top: calc(100% + 10px);
+            left: 0;
+            right: 0;
+            background: white;
+            border-radius: 16px;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
+            border: 1px solid rgba(0, 0, 0, 0.05);
+            display: none;
+            z-index: 2000;
+            overflow: hidden;
+            animation: slideDown 0.3s ease;
+        }
+
+        .suggestion-item {
+            padding: 0.8rem 1.2rem;
+            cursor: pointer;
+            font-weight: 600;
+            color: #475569;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            transition: 0.2s;
+        }
+
+        .suggestion-item:hover {
+            background: #fff7ed;
+            color: var(--primary);
+        }
+
+        @keyframes slideDown {
+            from {
+                opacity: 0;
+                transform: translateY(-10px);
+            }
+
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        /* Ensure navbar doesn't clobber layout */
+        .navbar {
+            margin-bottom: 2rem;
         }
     </style>
 </body>

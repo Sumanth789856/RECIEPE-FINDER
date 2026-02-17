@@ -1,69 +1,177 @@
 {% extends 'base.html' %}
 
-{% block title %}Upload Recipe - RecipeHub{% endblock %}
+{% block title %}Share Your Recipe - RecipeHub{% endblock %}
 
 {% block content %}
-<div class="upload-container">
-    <h2 style="margin-bottom: 1.5rem; text-align: center;">Share Your Recipe Video</h2>
-    <form method="POST" enctype="multipart/form-data">
-        <div class="form-group">
-            <label for="title">Recipe Title</label>
-            <input type="text" id="title" name="title" class="form-control" required
-                placeholder="e.g., Authentic Italian Carbonara">
+<div class="upload-page-wrapper" style="min-height: 100vh; padding: 2rem 1rem; animation: fadeIn 0.8s ease;">
+    <div class="upload-card-wrapper" style="max-width: 800px; margin: 0 auto; position: relative;">
+        <!-- Abstract Background Glows -->
+        <div
+            style="position: absolute; top: -100px; right: -100px; width: 300px; height: 300px; background: radial-gradient(circle, rgba(249, 115, 22, 0.08) 0%, transparent 70%); z-index: -1;">
+        </div>
+        <div
+            style="position: absolute; bottom: -100px; left: -100px; width: 350px; height: 350px; background: radial-gradient(circle, rgba(16, 185, 129, 0.05) 0%, transparent 70%); z-index: -1;">
         </div>
 
-        <div class="form-group">
-            <label for="description">Short Description / Story</label>
-            <textarea id="description" name="description" class="form-control" rows="2"
-                placeholder="Tell us a bit about this dish..."></textarea>
-        </div>
+        <div class="upload-card"
+            style="background: white; border-radius: 32px; padding: 3.5rem; box-shadow: 0 20px 50px rgba(0,0,0,0.05); border: 1px solid rgba(0,0,0,0.02); position: relative; overflow: hidden;">
 
-        <div class="form-group">
-            <label for="ingredients">Ingredients</label>
-            <textarea id="ingredients" name="ingredients" class="form-control" rows="4" required
-                placeholder="List your ingredients here..."></textarea>
-        </div>
-
-        <div class="form-group">
-            <label for="instructions">Cooking Procedure</label>
-            <textarea id="instructions" name="instructions" class="form-control" rows="6" required
-                placeholder="Step-by-step cooking instructions..."></textarea>
-        </div>
-
-        <div class="form-group">
-            <label for="category">Category</label>
-            <select id="category" name="category" class="form-control" required>
-                <option value="" disabled selected>Select Category</option>
-                <option value="Breakfast">Breakfast</option>
-                <option value="Lunch">Lunch</option>
-                <option value="Dinner">Dinner</option>
-                <option value="Special">Special</option>
-                <option value="Bakery">Bakery</option>
-                <option value="Veg">Veg</option>
-                <option value="Non-Veg">Non-Veg</option>
-            </select>
-        </div>
-
-        <div class="form-group">
-            <label for="cooking_time">Cooking Time (minutes)</label>
-            <input type="number" id="cooking_time" name="cooking_time" class="form-control" required
-                placeholder="e.g., 30" min="1">
-        </div>
-
-        <div class="form-group">
-            <label for="video">Upload Video (MP4, AVI, MOV)</label>
-            <div style="border: 2px dashed #444; padding: 2rem; text-align: center; border-radius: 10px; cursor: pointer;"
-                onclick="document.getElementById('video').click()">
-                <i class="fas fa-cloud-upload-alt"
-                    style="font-size: 3rem; color: var(--primary-color); margin-bottom: 1rem;"></i>
-                <p>Click to select video file</p>
-                <input type="file" id="video" name="video" accept="video/*" required style="display: none;"
-                    onchange="document.querySelector('.file-name').textContent = this.files[0].name">
-                <p class="file-name" style="margin-top: 0.5rem; color: var(--secondary-color); font-size: 0.9rem;"></p>
+            <div style="text-align: center; margin-bottom: 3rem;">
+                <div
+                    style="width: 70px; height: 70px; background: rgba(249, 115, 22, 0.1); color: var(--primary); border-radius: 20px; display: inline-flex; align-items: center; justify-content: center; font-size: 2rem; margin-bottom: 1.5rem;">
+                    <i class="fas fa-utensils"></i>
+                </div>
+                <h2 style="font-size: 2.2rem; font-weight: 800; color: #1e293b; letter-spacing: -1px; margin: 0;">Share
+                    Your Recipe <span style="color: var(--primary);">Video</span></h2>
+                <p style="color: #64748b; margin-top: 0.5rem; font-weight: 500;">Inspire the community with your
+                    culinary masterpieces.</p>
             </div>
-        </div>
 
-        <button type="submit" class="btn btn-primary" style="width: 100%; margin-top: 1rem;">Upload Recipe</button>
-    </form>
+            <form method="POST" enctype="multipart/form-data">
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1.5rem; margin-bottom: 1.5rem;">
+                    <div class="form-group">
+                        <label for="title"
+                            style="display: block; font-weight: 700; color: #334155; margin-bottom: 0.6rem; font-size: 0.95rem;">
+                            <i class="fas fa-heading" style="color: var(--primary); margin-right: 8px;"></i> Recipe
+                            Title
+                        </label>
+                        <input type="text" id="title" name="title" class="form-control" required
+                            placeholder="e.g., Authentic Italian Carbonara"
+                            style="border-radius: 12px; padding: 0.9rem 1.2rem; transition: 0.3s;">
+                    </div>
+
+                    <div class="form-group">
+                        <label for="category"
+                            style="display: block; font-weight: 700; color: #334155; margin-bottom: 0.6rem; font-size: 0.95rem;">
+                            <i class="fas fa-tags" style="color: var(--primary); margin-right: 8px;"></i> Category
+                        </label>
+                        <select id="category" name="category" class="form-control" required
+                            style="border-radius: 12px; padding: 0.9rem 1.2rem; appearance: none; cursor: pointer; transition: 0.3s;">
+                            <option value="" disabled selected>Select Category</option>
+                            <option value="Breakfast">Breakfast</option>
+                            <option value="Lunch">Lunch</option>
+                            <option value="Dinner">Dinner</option>
+                            <option value="Instant">Instant</option>
+                            <option value="Bakery">Bakery</option>
+                            <option value="Snacks">Snacks</option>
+                            <option value="Healthy">Healthy</option>
+                            <option value="Special">Special</option>
+                        </select>
+                    </div>
+                </div>
+
+                <div class="form-group" style="margin-bottom: 1.5rem;">
+                    <label for="description"
+                        style="display: block; font-weight: 700; color: #334155; margin-bottom: 0.6rem; font-size: 0.95rem;">
+                        <i class="fas fa-quote-left" style="color: var(--primary); margin-right: 8px;"></i> Short
+                        Description / Story
+                    </label>
+                    <textarea id="description" name="description" class="form-control" rows="2"
+                        placeholder="Tell us a bit about this dish..."
+                        style="border-radius: 12px; padding: 1rem; transition: 0.3s;"></textarea>
+                </div>
+
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1.5rem; margin-bottom: 1.5rem;">
+                    <div class="form-group">
+                        <label for="ingredients"
+                            style="display: block; font-weight: 700; color: #334155; margin-bottom: 0.6rem; font-size: 0.95rem;">
+                            <i class="fas fa-leaf" style="color: var(--primary); margin-right: 8px;"></i> Ingredients
+                        </label>
+                        <textarea id="ingredients" name="ingredients" class="form-control" rows="6" required
+                            placeholder="List your ingredients here..."
+                            style="border-radius: 12px; padding: 1rem; transition: 0.3s;"></textarea>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="instructions"
+                            style="display: block; font-weight: 700; color: #334155; margin-bottom: 0.6rem; font-size: 0.95rem;">
+                            <i class="fas fa-list-ol" style="color: var(--primary); margin-right: 8px;"></i> Cooking
+                            Procedure
+                        </label>
+                        <textarea id="instructions" name="instructions" class="form-control" rows="6" required
+                            placeholder="Step-by-step cooking instructions..."
+                            style="border-radius: 12px; padding: 1rem; transition: 0.3s;"></textarea>
+                    </div>
+                </div>
+
+                <div class="form-group" style="margin-bottom: 2rem;">
+                    <label for="cooking_time"
+                        style="display: block; font-weight: 700; color: #334155; margin-bottom: 0.6rem; font-size: 0.95rem;">
+                        <i class="fas fa-clock" style="color: var(--primary); margin-right: 8px;"></i> Cooking Time
+                        (minutes)
+                    </label>
+                    <input type="number" id="cooking_time" name="cooking_time" class="form-control" required
+                        placeholder="e.g., 30" min="1"
+                        style="border-radius: 12px; padding: 0.9rem 1.2rem; transition: 0.3s;">
+                </div>
+
+                <div class="form-group" style="margin-bottom: 2.5rem;">
+                    <label for="video"
+                        style="display: block; font-weight: 700; color: #334155; margin-bottom: 1rem; font-size: 0.95rem;">
+                        <i class="fas fa-video" style="color: var(--primary); margin-right: 8px;"></i> Upload Recipe
+                        Video
+                    </label>
+                    <div style="border: 2px dashed #e2e8f0; padding: 3rem; text-align: center; border-radius: 20px; cursor: pointer; transition: 0.3s; background: #f8fafc;"
+                        onclick="document.getElementById('video').click()"
+                        onmouseover="this.style.borderColor='var(--primary)'; this.style.background='rgba(249, 115, 22, 0.02)'"
+                        onmouseout="this.style.borderColor='#e2e8f0'; this.style.background='#f8fafc'">
+                        <div
+                            style="width: 60px; height: 60px; background: white; border-radius: 50%; display: flex; align-items: center; justify-content: center; margin: 0 auto 1.5rem; box-shadow: 0 10px 20px rgba(0,0,0,0.05); color: var(--primary); font-size: 1.5rem;">
+                            <i class="fas fa-cloud-upload-alt"></i>
+                        </div>
+                        <p style="font-weight: 700; color: #1e293b; margin-bottom: 5px;">Select your recipe video</p>
+                        <p style="color: #64748b; font-size: 0.85rem;">MP4, AVI, or MOV (max 100MB)</p>
+                        <input type="file" id="video" name="video" accept="video/*" required style="display: none;"
+                            onchange="updateFileName(this)">
+                        <div class="file-info"
+                            style="margin-top: 1.5rem; display: none; align-items: center; justify-content: center; gap: 10px; color: #059669; font-weight: 700; background: #ecfdf5; padding: 0.8rem; border-radius: 12px; border: 1px solid #10b98133;">
+                            <i class="fas fa-check-circle"></i>
+                            <span class="file-name"></span>
+                        </div>
+                    </div>
+                </div>
+
+                <button type="submit" class="btn btn-primary"
+                    style="width: 100%; padding: 1.25rem; border-radius: 18px; font-size: 1.1rem; font-weight: 800; display: flex; align-items: center; justify-content: center; gap: 12px; transition: 0.4s;">
+                    <i class="fas fa-upload"></i> Publish Recipe
+                </button>
+            </form>
+        </div>
+    </div>
 </div>
+
+<script>
+    function updateFileName(input) {
+        const fileInfo = document.querySelector('.file-info');
+        const fileNameDisp = document.querySelector('.file-name');
+        if (input.files && input.files.length > 0) {
+            fileInfo.style.display = 'flex';
+            fileNameDisp.textContent = input.files[0].name;
+            // Add pulse animation
+            fileInfo.style.animation = 'none';
+            fileInfo.offsetHeight; // trigger reflow
+            fileInfo.style.animation = 'scaleIn 0.3s ease-out';
+        }
+    }
+</script>
+
+<style>
+    @keyframes scaleIn {
+        from {
+            transform: scale(0.95);
+            opacity: 0;
+        }
+
+        to {
+            transform: scale(1);
+            opacity: 1;
+        }
+    }
+
+    .form-control:focus {
+        border-color: var(--primary) !important;
+        box-shadow: 0 0 0 4px rgba(249, 115, 22, 0.1) !important;
+        background-color: white !important;
+    }
+</style>
 {% endblock %}
