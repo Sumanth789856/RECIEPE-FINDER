@@ -13,11 +13,7 @@
 </head>
 
 <body>
-    <!-- Device Type Indicator Badge -->
-    <div id="device-badge" class="device-badge">
-        <i class="fas fa-desktop" id="device-icon"></i>
-        <span id="device-label">Desktop</span>
-    </div>
+
 
     <nav class="navbar">
         <a href="{{ url_for('index') }}" class="logo">
@@ -96,48 +92,7 @@
         </div>
 
         <script>
-            // ===== Device Detection & Badge =====
-            function detectDevice() {
-                const badge = document.getElementById('device-badge');
-                const icon = document.getElementById('device-icon');
-                const label = document.getElementById('device-label');
-                const width = window.innerWidth;
 
-                if (width <= 480) {
-                    icon.className = 'fas fa-mobile-alt';
-                    label.textContent = 'Mobile';
-                    badge.className = 'device-badge device-mobile';
-                } else if (width <= 1024) {
-                    icon.className = 'fas fa-tablet-alt';
-                    label.textContent = 'Tablet';
-                    badge.className = 'device-badge device-tablet';
-                } else {
-                    icon.className = 'fas fa-desktop';
-                    label.textContent = 'Desktop';
-                    badge.className = 'device-badge device-desktop';
-                }
-
-                // Auto-hide badge after 4 seconds
-                badge.style.opacity = '1';
-                badge.style.transform = 'translateX(0)';
-                clearTimeout(window._badgeTimeout);
-                window._badgeTimeout = setTimeout(() => {
-                    badge.style.opacity = '0.3';
-                }, 4000);
-            }
-
-            // Re-detect on resize
-            window.addEventListener('resize', detectDevice);
-            // Detect on load
-            document.addEventListener('DOMContentLoaded', detectDevice);
-
-            // Show badge on hover
-            document.getElementById('device-badge').addEventListener('mouseenter', function () {
-                this.style.opacity = '1';
-            });
-            document.getElementById('device-badge').addEventListener('mouseleave', function () {
-                this.style.opacity = '0.3';
-            });
 
             // ===== Mobile Menu Toggle =====
             function toggleMobileMenu() {
@@ -218,7 +173,6 @@
 
             // Handle Flask Flash Messages
             window.onload = () => {
-                detectDevice();
 
                 const flashData = document.querySelectorAll('#flash-messages-data .flash-message');
                 flashData.forEach(msg => {
